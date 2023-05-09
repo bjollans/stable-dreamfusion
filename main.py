@@ -100,7 +100,7 @@ if __name__ == '__main__':
     parser.add_argument('--progressive_level', action='store_true', help="progressively increase gridencoder's max_level")
 
     parser.add_argument('--angle_overhead', type=float, default=30, help="[0, angle_overhead] is the overhead region")
-    parser.add_argument('--angle_front', type=float, default=180, help="[0, angle_front] is the front region, [180, 180+angle_front] the back region, otherwise the side region.")
+    parser.add_argument('--angle_front', type=float, default=60, help="[0, angle_front] is the front region, [180, 180+angle_front] the back region, otherwise the side region.")
     parser.add_argument('--t_range', type=float, nargs='*', default=[0.02, 0.98], help="stable diffusion time steps range")
 
     ### regularizations
