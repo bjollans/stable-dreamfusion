@@ -146,6 +146,8 @@ def rand_poses(size, device, radius_range=[1, 1.5], theta_range=[0, 120], phi_ra
     return poses, dirs, thetas, phis, radius
 
 
+# This is the spot that uses the default phis, etc. It returns "poses", which are later used to render the images
+# TODO make the angle_front 0 and then 180 and see what happens
 def circle_poses(device, radius=1.25, theta=60, phi=0, return_dirs=False, angle_overhead=30, angle_front=60):
 
     theta = theta / 180 * np.pi
@@ -228,6 +230,8 @@ class NeRFDataset:
         # sample a low-resolution but full image
         rays = get_rays(poses, intrinsics, H, W, -1)
 
+        # This variable is used to determine the angle of the image that is rendered
+        # TODO hard code 180 for azimuth here and see if the output video starts with the back first
         data = {
             'H': H,
             'W': W,

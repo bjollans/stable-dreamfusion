@@ -357,6 +357,7 @@ class Trainer(object):
         do_rgbd_loss = self.opt.image is not None and \
             (self.global_step % self.opt.known_view_interval == 0)
 
+        #This gets triggered every .opt.known_view_interval and sets the angle, etc. for the input image as RGB loss
         # override random camera with fixed known camera
         if do_rgbd_loss:
             data = self.default_view_data
@@ -432,6 +433,7 @@ class Trainer(object):
             else:
                 bg_color = torch.rand(3).to(self.device) # single color random bg
 
+        # TODO: check which of these arguments changes the azimuth rotation of the generated object
         outputs = self.model.render(rays_o, rays_d, mvp, H, W, staged=False, perturb=True, bg_color=bg_color, ambient_ratio=ambient_ratio, shading=shading, binarize=binarize)
         pred_depth = outputs['depth'].reshape(B, 1, H, W)
         pred_mask = outputs['weights_sum'].reshape(B, 1, H, W)
