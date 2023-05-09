@@ -214,7 +214,8 @@ class NeRFDataset:
         thetas = torch.FloatTensor([self.opt.default_theta]).to(self.device)
         phis = torch.FloatTensor([180]).to(self.device)
         radius = torch.FloatTensor([self.opt.default_radius]).to(self.device)
-        poses, dirs = circle_poses(self.device, radius=radius, theta=thetas, phi=phis, return_dirs=True, angle_overhead=self.opt.angle_overhead, angle_front=self.opt.angle_front)
+        angle_front = torch.FloatTensor([180]).to(self.device)
+        poses, dirs = circle_poses(self.device, radius=radius, theta=thetas, phi=phis, return_dirs=True, angle_overhead=self.opt.angle_overhead, angle_front=angle_front)
         fov = self.opt.default_fovy
         focal = H / (2 * np.tan(np.deg2rad(fov) / 2))
         intrinsics = np.array([focal, focal, cx, cy])
