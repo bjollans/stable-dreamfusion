@@ -107,6 +107,7 @@ class Zero123(nn.Module):
     def train_step(self, embeddings, pred_rgb, polar, azimuth, radius, guidance_scale=3, as_latent=False, grad_scale=1):
         # pred_rgb: tensor [1, 3, H, W] in [-1, 1]
 
+        print(f'azimuth: {azimuth}, polar: {polar}, radius: {radius}')
         if as_latent:
             latents = F.interpolate(pred_rgb, (32, 32), mode='bilinear', align_corners=False) * 2 - 1
         else:

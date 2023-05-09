@@ -359,6 +359,7 @@ class Trainer(object):
 
         #This gets triggered every .opt.known_view_interval and sets the angle, etc. for the input image as RGB loss
         # override random camera with fixed known camera
+        data['azimuth'] = 180
         if do_rgbd_loss:
             data = self.default_view_data
 
