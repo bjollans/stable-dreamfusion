@@ -242,7 +242,7 @@ class NeRFDataset:
             'dir': dirs,
             'mvp': mvp,
             'polar': 0,
-            'azimuth': 180,
+            'azimuth': 0,
             'radius': 0,
         }
 
