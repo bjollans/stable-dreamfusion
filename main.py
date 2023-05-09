@@ -92,8 +92,8 @@ if __name__ == '__main__':
     parser.add_argument('--fovy_range', type=float, nargs='*', default=[10, 30], help="training camera fovy range")
 
     parser.add_argument('--default_radius', type=float, default=3.2, help="radius for the default view")
-    parser.add_argument('--default_theta', type=float, default=90, help="radius for the default view")
-    parser.add_argument('--default_phi', type=float, default=0, help="radius for the default view")
+    parser.add_argument('--default_theta', type=float, default=90, help="polar angle for the default view")
+    parser.add_argument('--default_phi', type=float, default=0, help="azimuthal angle for the default view")
     parser.add_argument('--default_fovy', type=float, default=20, help="fovy for the default view")
 
     parser.add_argument('--progressive_view', action='store_true', help="progressively expand view sampling range from default to full")
