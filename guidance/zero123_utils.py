@@ -160,14 +160,14 @@ class Zero123(nn.Module):
         #         noise_pred = noise_pred_uncond + 3 * (noise_pred_cond - noise_pred_uncond)
 
         #         latents = self.scheduler.step(noise_pred, t, latents)['prev_sample']
-        imgs = self.decode_latents(latents)
-        for img in imgs:
+        #imgs = self.decode_latents(latents)
+        #for img in imgs:
             # save as random file name with date in it .png
-            torchvision.transforms.ToPILImage()(img).save(f'./latents_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")}_{uuid.uuid4().hex}.png')
-        imgs = self.decode_latents(clip_emb)
-        for img in imgs:
+        #    torchvision.transforms.ToPILImage()(img).save(f'./latents_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")}_{uuid.uuid4().hex}.png')
+        #imgs = self.decode_latents(clip_emb)
+        #for img in imgs:
             # save as random file name with date in it .png
-            torchvision.transforms.ToPILImage()(img).save(f'./cond_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")}_{uuid.uuid4().hex}.png')
+        #    torchvision.transforms.ToPILImage()(img).save(f'./cond_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")}_{uuid.uuid4().hex}.png')
         # print(polar, azimuth, radius)
         # kiui.vis.plot_image(pred_rgb_256, imgs)
 
