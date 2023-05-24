@@ -161,7 +161,8 @@ class Zero123(nn.Module):
         imgs = self.decode_latents(latents)
         for img in imgs:
             # save as random file name .png
-            img.save(f'./{uuid.uuid4().hex}.png')
+            #img.save(f'./{uuid.uuid4().hex}.png')
+            print("ASDASDASDASD " + img.shape)
         # print(polar, azimuth, radius)
         # kiui.vis.plot_image(pred_rgb_256, imgs)
 
