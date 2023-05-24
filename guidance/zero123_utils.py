@@ -1,4 +1,5 @@
 import math
+import uuid
 from omegaconf import OmegaConf
 
 import torch
@@ -157,7 +158,10 @@ class Zero123(nn.Module):
         #         noise_pred = noise_pred_uncond + 3 * (noise_pred_cond - noise_pred_uncond)
 
         #         latents = self.scheduler.step(noise_pred, t, latents)['prev_sample']
-        # imgs = self.decode_latents(latents)
+        imgs = self.decode_latents(latents)
+        for img in imgs:
+            # save as random file name .png
+            img.save(f'./{uuid.uuid4().hex}.png')
         # print(polar, azimuth, radius)
         # kiui.vis.plot_image(pred_rgb_256, imgs)
 
