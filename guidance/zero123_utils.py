@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch.cuda.amp import custom_bwd, custom_fwd
 
 from diffusers import DDIMScheduler
+import torchvision
 
 import sys
 from os import path
@@ -162,7 +163,7 @@ class Zero123(nn.Module):
         for img in imgs:
             # save as random file name .png
             #img.save(f'./{uuid.uuid4().hex}.png')
-            print(f"ASDASDASDASD {img.shape}")
+            torchvision.transforms.ToPILImage()(img.unsqueeze(0)).save(f'./{uuid.uuid4().hex}.png')
         # print(polar, azimuth, radius)
         # kiui.vis.plot_image(pred_rgb_256, imgs)
 
