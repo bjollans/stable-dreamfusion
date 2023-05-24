@@ -1,10 +1,13 @@
 import os
+import gc
 import glob
 import tqdm
 import math
 import imageio
+import psutil
 from pathlib import Path
 import random
+import shutil
 import warnings
 import tensorboardX
 
@@ -142,7 +145,6 @@ class Trainer(object):
                  device=None, # device to use, usually setting to None is OK. (auto choose device)
                  mute=False, # whether to mute all print
                  fp16=False, # amp optimize level
-                 eval_interval=1, # eval once every $ epoch
                  max_keep_ckpt=2, # max num of saved ckpts in disk
                  workspace='workspace', # workspace to save logs & ckpts
                  best_mode='min', # the smaller/larger result, the better
@@ -167,7 +169,6 @@ class Trainer(object):
         self.use_loss_as_metric = use_loss_as_metric
         self.report_metric_at_train = report_metric_at_train
         self.max_keep_ckpt = max_keep_ckpt
-        self.eval_interval = eval_interval
         self.use_checkpoint = use_checkpoint
         self.use_tensorboardX = use_tensorboardX
         self.time_stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
@@ -185,7 +186,7 @@ class Trainer(object):
         self.guidance = guidance
         self.embeddings = {}
 
-        # text prompt
+        # text prompt / images
         if self.guidance is not None:
             for key in self.guidance:
                 for p in self.guidance[key].parameters():
@@ -197,7 +198,7 @@ class Trainer(object):
             criterion.to(self.device)
         self.criterion = criterion
 
-        if self.opt.image is not None:
+        if self.opt.images is not None:
             self.pearson = PearsonCorrCoef().to(self.device)
 
         if optimizer is None:
@@ -218,6 +219,7 @@ class Trainer(object):
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.fp16)
 
         # variable init
+        self.total_train_t = 0
         self.epoch = 0
         self.global_step = 0
         self.local_step = 0
@@ -244,7 +246,17 @@ class Trainer(object):
             self.best_path = f"{self.ckpt_path}/{self.name}.pth"
             os.makedirs(self.ckpt_path, exist_ok=True)
 
+            # Save a copy of image_config in the experiment workspace
+            if opt.image_config is not None:
+                shutil.copyfile(opt.image_config, os.path.join(self.workspace, os.path.basename(opt.image_config)))
+
+            # Save a copy of images in the experiment workspace
+            if opt.images is not None:
+                for image_file in opt.images:
+                    shutil.copyfile(image_file, os.path.join(self.workspace, os.path.basename(image_file)))
+
         self.log(f'[INFO] Cmdline: {self.argv}')
+        self.log(f'[INFO] opt: {self.opt}')
         self.log(f'[INFO] Trainer: {self.name} | {self.time_stamp} | {self.device} | {"fp16" if self.fp16 else "fp32"} | {self.workspace}')
         self.log(f'[INFO] #parameters: {sum([p.numel() for p in model.parameters() if p.requires_grad])}')
 
@@ -281,51 +293,61 @@ class Trainer(object):
 
                 for d in ['front', 'side', 'back']:
                     self.embeddings['SD'][d] = self.guidance['SD'].get_text_embeds([f"{self.opt.text}, {d} view"])
-            
+
             if 'IF' in self.guidance:
                 self.embeddings['IF']['default'] = self.guidance['IF'].get_text_embeds([self.opt.text])
                 self.embeddings['IF']['uncond'] = self.guidance['IF'].get_text_embeds([self.opt.negative])
 
                 for d in ['front', 'side', 'back']:
                     self.embeddings['IF'][d] = self.guidance['IF'].get_text_embeds([f"{self.opt.text}, {d} view"])
-            
+
             if 'clip' in self.guidance:
                 self.embeddings['clip']['text'] = self.guidance['clip'].get_text_embeds(self.opt.text)
-        
-        if self.opt.image is not None:
+
+        if self.opt.images is not None:
 
             h = int(self.opt.known_view_scale * self.opt.h)
             w = int(self.opt.known_view_scale * self.opt.w)
 
             # load processed image
-            rgba = cv2.cvtColor(cv2.imread(self.opt.image, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGRA2RGBA)
-            rgba_hw = cv2.resize(rgba, (w, h), interpolation=cv2.INTER_AREA).astype(np.float32) / 255
+            for image in self.opt.images:
+                assert image.endswith('_rgba.png') # the rest of this code assumes that the _rgba image has been passed.
+            rgbas = [cv2.cvtColor(cv2.imread(image, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGRA2RGBA) for image in self.opt.images]
+            rgba_hw = np.stack([cv2.resize(rgba, (w, h), interpolation=cv2.INTER_AREA).astype(np.float32) / 255 for rgba in rgbas])
             rgb_hw = rgba_hw[..., :3] * rgba_hw[..., 3:] + (1 - rgba_hw[..., 3:])
-            self.rgb = torch.from_numpy(rgb_hw).permute(2,0,1).unsqueeze(0).contiguous().to(self.device)
+            self.rgb = torch.from_numpy(rgb_hw).permute(0,3,1,2).contiguous().to(self.device)
             self.mask = torch.from_numpy(rgba_hw[..., 3] > 0.5).to(self.device)
-            print(f'[INFO] dataset: load image prompt {self.opt.image} {self.rgb.shape}')
+            print(f'[INFO] dataset: load image prompt {self.opt.images} {self.rgb.shape}')
 
             # load depth
-            depth_path = self.opt.image.replace('_rgba.png', '_depth.png')
-            depth = cv2.imread(depth_path, cv2.IMREAD_UNCHANGED)
-            depth = cv2.resize(depth, (w, h), interpolation=cv2.INTER_AREA)
-            self.depth = torch.from_numpy(depth.astype(np.float32) / 255).to(self.device)
-            print(f'[INFO] dataset: load depth prompt {depth_path} {self.depth.shape}')
+            depth_paths = [image.replace('_rgba.png', '_depth.png') for image in self.opt.images]
+            depths = [cv2.imread(depth_path, cv2.IMREAD_UNCHANGED) for depth_path in depth_paths]
+            depth = np.stack([cv2.resize(depth, (w, h), interpolation=cv2.INTER_AREA) for depth in depths])
+            self.depth = torch.from_numpy(depth.astype(np.float32) / 255).to(self.device)  # TODO: this should be mapped to FP16
+            print(f'[INFO] dataset: load depth prompt {depth_paths} {self.depth.shape}')
 
-            # load normal
-            normal_path = self.opt.image.replace('_rgba.png', '_normal.png')
-            normal = cv2.imread(normal_path, cv2.IMREAD_UNCHANGED)
-            normal = cv2.resize(normal, (w, h), interpolation=cv2.INTER_AREA)
+            # load normal   # TODO: don't load if normal loss is 0
+            normal_paths = [image.replace('_rgba.png', '_normal.png') for image in self.opt.images]
+            normals = [cv2.imread(normal_path, cv2.IMREAD_UNCHANGED) for normal_path in normal_paths]
+            normal = np.stack([cv2.resize(normal, (w, h), interpolation=cv2.INTER_AREA) for normal in normals])
             self.normal = torch.from_numpy(normal.astype(np.float32) / 255).to(self.device)
-            print(f'[INFO] dataset: load normal prompt {normal_path} {self.normal.shape}')
+            print(f'[INFO] dataset: load normal prompt {normal_paths} {self.normal.shape}')
 
-            # encode image_z for zero123
+            # encode embeddings for zero123
             if 'zero123' in self.guidance:
-                rgba_256 = cv2.resize(rgba, (256, 256), interpolation=cv2.INTER_AREA).astype(np.float32) / 255
-                rgb_256 = rgba_256[..., :3] * rgba_256[..., 3:] + (1 - rgba_256[..., 3:])
-                rgb_256 = torch.from_numpy(rgb_256).permute(2,0,1).unsqueeze(0).contiguous().to(self.device)
-                self.embeddings['zero123']['default'] = self.guidance['zero123'].get_img_embeds(rgb_256)
-            
+                rgba_256 = np.stack([cv2.resize(rgba, (256, 256), interpolation=cv2.INTER_AREA).astype(np.float32) / 255 for rgba in rgbas])
+                rgbs_256 = rgba_256[..., :3] * rgba_256[..., 3:] + (1 - rgba_256[..., 3:])
+                rgb_256 = torch.from_numpy(rgbs_256).permute(0,3,1,2).contiguous().to(self.device)
+                guidance_embeds = self.guidance['zero123'].get_img_embeds(rgb_256)
+                self.embeddings['zero123']['default'] = {
+                    'zero123_ws' : self.opt.zero123_ws,
+                    'c_crossattn' : guidance_embeds[0],
+                    'c_concat' : guidance_embeds[1],
+                    'ref_polars' : self.opt.ref_polars,
+                    'ref_azimuths' : self.opt.ref_azimuths,
+                    'ref_radii' : self.opt.ref_radii,
+                }
+
             if 'clip' in self.guidance:
                 self.embeddings['clip']['image'] = self.guidance['clip'].get_img_embeds(self.rgb)
 
@@ -349,25 +371,29 @@ class Trainer(object):
     def train_step(self, data, save_guidance_path:Path=None):
         """
             Args:
-                save_guidance_path: an image that combines the NeRF render, the added latent noise, 
+                save_guidance_path: an image that combines the NeRF render, the added latent noise,
                     the denoised result and optionally the fully-denoised image.
         """
 
         # perform RGBD loss instead of SDS if is image-conditioned
-        do_rgbd_loss = self.opt.image is not None and \
+        do_rgbd_loss = self.opt.images is not None and \
             (self.global_step % self.opt.known_view_interval == 0)
 
         # override random camera with fixed known camera
         if do_rgbd_loss:
             data = self.default_view_data
 
+        # experiment iterations ratio
+        # i.e. what proportion of this experiment have we completed (in terms of iterations) so far?
+        exp_iter_ratio = (self.global_step - self.opt.exp_start_iter) / (self.opt.exp_end_iter - self.opt.exp_start_iter)
+
         # progressively relaxing view range
         if self.opt.progressive_view:
-            r = min(1.0, 0.2 + self.global_step / (0.5 * self.opt.iters))
-            self.opt.phi_range = [self.opt.default_phi * (1 - r) + self.opt.full_phi_range[0] * r,
-                                  self.opt.default_phi * (1 - r) + self.opt.full_phi_range[1] * r]
-            self.opt.theta_range = [self.opt.default_theta * (1 - r) + self.opt.full_theta_range[0] * r,
-                                    self.opt.default_theta * (1 - r) + self.opt.full_theta_range[1] * r]
+            r = min(1.0, self.opt.progressive_view_init_ratio + 2.0*exp_iter_ratio)
+            self.opt.phi_range = [self.opt.default_azimuth * (1 - r) + self.opt.full_phi_range[0] * r,
+                                  self.opt.default_azimuth * (1 - r) + self.opt.full_phi_range[1] * r]
+            self.opt.theta_range = [self.opt.default_polar * (1 - r) + self.opt.full_theta_range[0] * r,
+                                    self.opt.default_polar * (1 - r) + self.opt.full_theta_range[1] * r]
             self.opt.radius_range = [self.opt.default_radius * (1 - r) + self.opt.full_radius_range[0] * r,
                                     self.opt.default_radius * (1 - r) + self.opt.full_radius_range[1] * r]
             self.opt.fovy_range = [self.opt.default_fovy * (1 - r) + self.opt.full_fovy_range[0] * r,
@@ -375,7 +401,7 @@ class Trainer(object):
 
         # progressively increase max_level
         if self.opt.progressive_level:
-            self.model.max_level = min(1.0, 0.25 + self.global_step / (0.5 * self.opt.iters))
+            self.model.max_level = min(1.0, 0.25 + 2.0*exp_iter_ratio)
 
         rays_o = data['rays_o'] # [B, N, 3]
         rays_d = data['rays_d'] # [B, N, 3]
@@ -384,6 +410,15 @@ class Trainer(object):
         B, N = rays_o.shape[:2]
         H, W = data['H'], data['W']
 
+        # When ref_data has B images > opt.batch_size
+        if B > self.opt.batch_size:
+            # choose batch_size images out of those B images
+            choice = torch.randperm(B)[:self.opt.batch_size]
+            B = self.opt.batch_size
+            rays_o = rays_o[choice]
+            rays_d = rays_d[choice]
+            mvp = mvp[choice]
+
         if do_rgbd_loss:
             ambient_ratio = 1.0
             shading = 'lambertian' # use lambertian instead of albedo to get normal
@@ -391,31 +426,30 @@ class Trainer(object):
             binarize = False
             bg_color = torch.rand((B * N, 3), device=rays_o.device)
 
-            # add camera noise to avoid grid-like artifect
+            # add camera noise to avoid grid-like artifact
             if self.opt.known_view_noise_scale > 0:
                 noise_scale = self.opt.known_view_noise_scale #* (1 - self.global_step / self.opt.iters)
                 rays_o = rays_o + torch.randn(3, device=self.device) * noise_scale
                 rays_d = rays_d + torch.randn(3, device=self.device) * noise_scale
 
-        elif self.global_step < (self.opt.latent_iter_ratio * self.opt.iters):
+        elif exp_iter_ratio <= self.opt.latent_iter_ratio:
             ambient_ratio = 1.0
             shading = 'normal'
             as_latent = True
             binarize = False
             bg_color = None
 
-        else: 
-
-            if self.global_step < (self.opt.albedo_iter_ratio * self.opt.iters):
+        else:
+            if exp_iter_ratio <= self.opt.albedo_iter_ratio:
                 ambient_ratio = 1.0
                 shading = 'albedo'
             else:
                 # random shading
-                ambient_ratio = 0.1 + 0.9 * random.random()
+                ambient_ratio = self.opt.min_ambient_ratio + (1.0-self.opt.min_ambient_ratio) * random.random()
                 rand = random.random()
-                if rand > 0.8: 
+                if rand >= (1.0 - self.opt.textureless_ratio):
                     shading = 'textureless'
-                else: 
+                else:
                     shading = 'lambertian'
 
             as_latent = False
@@ -440,34 +474,42 @@ class Trainer(object):
 
         if as_latent:
             # abuse normal & mask as latent code for faster geometry initialization (ref: fantasia3D)
-            pred_rgb = torch.cat([outputs['image'], outputs['weights_sum'].unsqueeze(-1)], dim=-1).reshape(B, H, W, 4).permute(0, 3, 1, 2).contiguous() # [1, 4, H, W]
+            pred_rgb = torch.cat([outputs['image'], outputs['weights_sum'].unsqueeze(-1)], dim=-1).reshape(B, H, W, 4).permute(0, 3, 1, 2).contiguous() # [B, 4, H, W]
         else:
-            pred_rgb = outputs['image'].reshape(B, H, W, 3).permute(0, 3, 1, 2).contiguous() # [1, 3, H, W]
+            pred_rgb = outputs['image'].reshape(B, H, W, 3).permute(0, 3, 1, 2).contiguous() # [B, 3, H, W]
 
         # known view loss
         if do_rgbd_loss:
-            gt_mask = self.mask # [H, W]
-            gt_rgb = self.rgb # [3, H, W]
+            gt_mask = self.mask # [B, H, W]
+            gt_rgb = self.rgb   # [B, 3, H, W]
+            gt_normal = self.normal # [B, H, W, 3]
+            gt_depth = self.depth   # [B, H, W]
+
+            if len(gt_rgb) > self.opt.batch_size:
+                gt_mask = gt_mask[choice]
+                gt_rgb = gt_rgb[choice]
+                gt_normal = gt_normal[choice]
+                gt_depth = gt_depth[choice]
 
             # color loss
-            gt_rgb = gt_rgb * gt_mask.float() + bg_color.reshape(H, W, 3).permute(2,0,1).contiguous() * (1 - gt_mask.float())
+            gt_rgb = gt_rgb * gt_mask[:, None].float() + bg_color.reshape(B, H, W, 3).permute(0,3,1,2).contiguous() * (1 - gt_mask[:, None].float())
             loss = self.opt.lambda_rgb * F.mse_loss(pred_rgb, gt_rgb)
 
             # mask loss
-            loss = loss + self.opt.lambda_mask * F.mse_loss(pred_mask[0, 0], gt_mask.float())
+            loss = loss + self.opt.lambda_mask * F.mse_loss(pred_mask[:, 0], gt_mask.float())
 
             # normal loss
             if self.opt.lambda_normal > 0 and 'normal_image' in outputs:
-                valid_gt_normal = 1 - 2 * self.normal[gt_mask] # [B, 3]
-                valid_pred_normal = 2 * pred_normal.squeeze()[gt_mask] - 1 # [B, 3]
+                valid_gt_normal = 1 - 2 * gt_normal[gt_mask] # [B, 3]
+                valid_pred_normal = 2 * pred_normal[gt_mask] - 1 # [B, 3]
 
                 lambda_normal = self.opt.lambda_normal * min(1, self.global_step / self.opt.iters)
                 loss = loss + lambda_normal * (1 - F.cosine_similarity(valid_pred_normal, valid_gt_normal).mean())
 
             # relative depth loss
             if self.opt.lambda_depth > 0:
-                valid_gt_depth = self.depth[gt_mask] # [B,]
-                valid_pred_depth = pred_depth.squeeze()[gt_mask] # [B,]
+                valid_gt_depth = gt_depth[gt_mask] # [B,]
+                valid_pred_depth = pred_depth[:, 0][gt_mask] # [B,]
                 lambda_depth = self.opt.lambda_depth * min(1, self.global_step / self.opt.iters)
                 loss = loss + lambda_depth * (1 - self.pearson(valid_pred_depth, valid_gt_depth))
 
@@ -481,55 +523,60 @@ class Trainer(object):
 
         # novel view loss
         else:
-            
+
             loss = 0
 
             if 'SD' in self.guidance:
                 # interpolate text_z
                 azimuth = data['azimuth'] # [-180, 180]
 
-                if azimuth >= -90 and azimuth < 90:
-                    if azimuth >= 0:
-                        r = 1 - azimuth / 90
+                # ENHANCE: remove loop to handle batch size > 1
+                text_z = [self.embeddings['SD']['uncond']] * azimuth.shape[0]
+                for b in range(azimuth.shape[0]):
+                    if azimuth[b] >= -90 and azimuth[b] < 90:
+                        if azimuth[b] >= 0:
+                            r = 1 - azimuth[b] / 90
+                        else:
+                            r = 1 + azimuth[b] / 90
+                        start_z = self.embeddings['SD']['front']
+                        end_z = self.embeddings['SD']['side']
                     else:
-                        r = 1 + azimuth / 90
-                    start_z = self.embeddings['SD']['front']
-                    end_z = self.embeddings['SD']['side']
-                else:
-                    if azimuth >= 0:
-                        r = 1 - (azimuth - 90) / 90
-                    else:
-                        r = 1 + (azimuth + 90) / 90
-                    start_z = self.embeddings['SD']['side']
-                    end_z = self.embeddings['SD']['back']
+                        if azimuth[b] >= 0:
+                            r = 1 - (azimuth[b] - 90) / 90
+                        else:
+                            r = 1 + (azimuth[b] + 90) / 90
+                        start_z = self.embeddings['SD']['side']
+                        end_z = self.embeddings['SD']['back']
+                    text_z.append(r * start_z + (1 - r) * end_z)
+                text_z = torch.cat(text_z, dim=0)
 
-                pos_z = r * start_z + (1 - r) * end_z    
-                uncond_z = self.embeddings['SD']['uncond']
-                text_z = torch.cat([uncond_z, pos_z], dim=0)
-                loss = loss + self.guidance['SD'].train_step(text_z, pred_rgb, as_latent=as_latent, guidance_scale=self.opt.guidance_scale, grad_scale=self.opt.lambda_guidance)
-            
+                loss = loss + self.guidance['SD'].train_step(text_z, pred_rgb, as_latent=as_latent, guidance_scale=self.opt.guidance_scale, grad_scale=self.opt.lambda_guidance,
+                                                             save_guidance_path=save_guidance_path)
+
             if 'IF' in self.guidance:
                 # interpolate text_z
                 azimuth = data['azimuth'] # [-180, 180]
-                
-                if azimuth >= -90 and azimuth < 90:
-                    if azimuth >= 0:
-                        r = 1 - azimuth / 90
-                    else:
-                        r = 1 + azimuth / 90
-                    start_z = self.embeddings['IF']['front']
-                    end_z = self.embeddings['IF']['side']
-                else:
-                    if azimuth >= 0:
-                        r = 1 - (azimuth - 90) / 90
-                    else:
-                        r = 1 + (azimuth + 90) / 90
-                    start_z = self.embeddings['IF']['side']
-                    end_z = self.embeddings['IF']['back']
 
-                pos_z = r * start_z + (1 - r) * end_z    
-                uncond_z = self.embeddings['IF']['uncond']
-                text_z = torch.cat([uncond_z, pos_z], dim=0)
+                # ENHANCE: remove loop to handle batch size > 1
+                text_z = [self.embeddings['IF']['uncond']] * azimuth.shape[0]
+                for b in range(azimuth.shape[0]):
+                    if azimuth[b] >= -90 and azimuth[b] < 90:
+                        if azimuth[b] >= 0:
+                            r = 1 - azimuth[b] / 90
+                        else:
+                            r = 1 + azimuth[b] / 90
+                        start_z = self.embeddings['IF']['front']
+                        end_z = self.embeddings['IF']['side']
+                    else:
+                        if azimuth[b] >= 0:
+                            r = 1 - (azimuth[b] - 90) / 90
+                        else:
+                            r = 1 + (azimuth[b] + 90) / 90
+                        start_z = self.embeddings['IF']['side']
+                        end_z = self.embeddings['IF']['back']
+                    text_z.append(r * start_z + (1 - r) * end_z)
+                text_z = torch.cat(text_z, dim=0)
+
                 loss = loss + self.guidance['IF'].train_step(text_z, pred_rgb, guidance_scale=self.opt.guidance_scale, grad_scale=self.opt.lambda_guidance)
 
             if 'zero123' in self.guidance:
@@ -538,18 +585,16 @@ class Trainer(object):
                 azimuth = data['azimuth']
                 radius = data['radius']
 
-                # adjust SDS scale based on how far the novel view is from the known view
-                lambda_guidance = (abs(azimuth) / 180) * self.opt.lambda_guidance
-
-                loss = loss + self.guidance['zero123'].train_step(self.embeddings['zero123']['default'], pred_rgb, polar, azimuth, radius, as_latent=as_latent, guidance_scale=self.opt.guidance_scale, grad_scale=lambda_guidance)
+                loss = loss + self.guidance['zero123'].train_step(self.embeddings['zero123']['default'], pred_rgb, polar, azimuth, radius, guidance_scale=self.opt.guidance_scale,
+                                                                  as_latent=as_latent, grad_scale=self.opt.lambda_guidance, save_guidance_path=save_guidance_path)
 
             if 'clip' in self.guidance:
-                
+
                 # empirical, far view should apply smaller CLIP loss
                 lambda_guidance = 10 * (1 - abs(azimuth) / 180) * self.opt.lambda_guidance
 
                 loss = loss + self.guidance['clip'].train_step(self.embeddings['clip'], pred_rgb, grad_scale=lambda_guidance)
-                
+
         # regularizations
         if not self.opt.dmtet:
 
@@ -576,7 +621,7 @@ class Trainer(object):
             if self.opt.lambda_orient > 0 and 'loss_orient' in outputs:
                 loss_orient = outputs['loss_orient']
                 loss = loss + self.opt.lambda_orient * loss_orient
-            
+
             if self.opt.lambda_3d_normal_smooth > 0 and 'loss_normal_perturb' in outputs:
                 loss_normal_perturb = outputs['loss_normal_perturb']
                 loss = loss + self.opt.lambda_3d_normal_smooth * loss_normal_perturb
@@ -668,7 +713,7 @@ class Trainer(object):
 
     ### ------------------------------
 
-    def train(self, train_loader, valid_loader, max_epochs):
+    def train(self, train_loader, valid_loader, test_loader, max_epochs):
 
         if self.use_tensorboardX and self.local_rank == 0:
             self.writer = tensorboardX.SummaryWriter(os.path.join(self.workspace, "run", self.name))
@@ -683,13 +728,18 @@ class Trainer(object):
             if self.workspace is not None and self.local_rank == 0:
                 self.save_checkpoint(full=True, best=False)
 
-            if self.epoch % self.eval_interval == 0:
+            if self.epoch % self.opt.eval_interval == 0:
                 self.evaluate_one_epoch(valid_loader)
                 self.save_checkpoint(full=False, best=True)
 
+            if self.epoch % self.opt.test_interval == 0 or self.epoch == max_epochs:
+                self.test(test_loader)
+
         end_t = time.time()
 
-        self.log(f"[INFO] training takes {(end_t - start_t)/ 60:.4f} minutes.")
+        self.total_train_t = end_t - start_t + self.total_train_t
+
+        self.log(f"[INFO] training takes {(self.total_train_t)/ 60:.4f} minutes.")
 
         if self.use_tensorboardX and self.local_rank == 0:
             self.writer.close()
@@ -870,7 +920,7 @@ class Trainer(object):
         return outputs
 
     def train_one_epoch(self, loader, max_epochs):
-        self.log(f"==> Start Training {self.workspace} Epoch {self.epoch}/{max_epochs}, lr={self.optimizer.param_groups[0]['lr']:.6f} ...")
+        self.log(f"==> [{time.strftime('%Y-%m-%d_%H-%M-%S')}] Start Training {self.workspace} Epoch {self.epoch}/{max_epochs}, lr={self.optimizer.param_groups[0]['lr']:.6f} ...")
 
         total_loss = 0
         if self.local_rank == 0 and self.report_metric_at_train:
@@ -972,7 +1022,8 @@ class Trainer(object):
             else:
                 self.lr_scheduler.step()
 
-        self.log(f"==> Finished Epoch {self.epoch}/{max_epochs}.")
+        cpu_mem, gpu_mem = get_CPU_mem(), get_GPU_mem()[0]
+        self.log(f"==> [{time.strftime('%Y-%m-%d_%H-%M-%S')}] Finished Epoch {self.epoch}/{max_epochs}. CPU={cpu_mem:.1f}GB, GPU={gpu_mem:.1f}GB.")
 
 
     def evaluate_one_epoch(self, loader, name=None):
@@ -1195,3 +1246,17 @@ class Trainer(object):
                 self.log("[INFO] loaded scaler.")
             except:
                 self.log("[WARN] Failed to load scaler.")
+
+
+def get_CPU_mem():
+    return psutil.Process(os.getpid()).memory_info().rss /1024**3
+
+
+def get_GPU_mem():
+    num = torch.cuda.device_count()
+    mem, mems = 0, []
+    for i in range(num):
+        mem_free, mem_total = torch.cuda.mem_get_info(i)
+        mems.append(int(((mem_total - mem_free)/1024**3)*1000)/1000)
+        mem += mems[-1]
+    return mem, mems
