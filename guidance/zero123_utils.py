@@ -162,7 +162,7 @@ class Zero123(nn.Module):
         for img in imgs:
             # save as random file name .png
             #img.save(f'./{uuid.uuid4().hex}.png')
-            print("ASDASDASDASD " + img.shape)
+            print(f"ASDASDASDASD {img.shape}")
         # print(polar, azimuth, radius)
         # kiui.vis.plot_image(pred_rgb_256, imgs)
 
