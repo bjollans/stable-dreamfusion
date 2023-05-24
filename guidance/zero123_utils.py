@@ -163,8 +163,8 @@ class Zero123(nn.Module):
         imgs = self.decode_latents(latents)
         for img in imgs:
             # save as random file name with date in it .png
-            torchvision.transforms.ToPILImage()(img).save(f'./latents_{datetime.now().strftime("%Y%m%d_%H%M%S%f")}_{uuid.uuid4().hex}.png')
-            torchvision.transforms.ToPILImage()(cond).save(f'./cond_{datetime.now().strftime("%Y%m%d_%H%M%S%f")}_{uuid.uuid4().hex}.png')
+            torchvision.transforms.ToPILImage()(img).save(f'./latents_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")}_{uuid.uuid4().hex}.png')
+            torchvision.transforms.ToPILImage()(cond).save(f'./cond_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")}_{uuid.uuid4().hex}.png')
         # print(polar, azimuth, radius)
         # kiui.vis.plot_image(pred_rgb_256, imgs)
 
