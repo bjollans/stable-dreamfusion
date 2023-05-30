@@ -168,6 +168,11 @@ python main.py --workspace trial2 -O2 --test --gui # not recommended, FPS will b
 ## use --dmtet and --init_with <nerf checkpoint> to finetune the mesh at higher reslution
 python main.py -O --text "a hamburger" --workspace trial_dmtet --dmtet --iters 5000 --init_with trial/checkpoints/df.pth
 
+## init dmtet with a mesh to generate texture
+# require install of cubvh: pip install git+https://github.com/ashawkey/cubvh
+# remove --lock_geo to also finetune geometry, but performance may be bad.
+python main.py -O --text "a white bunny with red eyes" --workspace trial_dmtet_mesh --dmtet --iters 5000 --init_with ./data/bunny.obj --lock_geo
+
 ## test & export the mesh
 python main.py -O --text "a hamburger" --workspace trial_dmtet --dmtet --iters 5000 --test --save_mesh
 
@@ -219,6 +224,16 @@ python main.py --text "a hamburger" --workspace trial_hamburger -O --vram_O --sa
 For example commands, check [`scripts`](./scripts).
 
 For advanced tips and other developing stuff, check [Advanced Tips](./assets/advanced.md).
+
+# Evalutation
+
+Reproduce the paper CLIP R-precision evaluation
+
+After the testing part in the usage, the validation set containing projection from different angle is generated. Test the R-precision between prompt and the image.(R=1)
+
+```bash
+python r_precision.py --text "a snake is flying in the sky" --workspace snake_HQ --latest ep0100 --mode depth --clip clip-ViT-B-16
+```
 
 # Acknowledgement
 
