@@ -312,6 +312,8 @@ class Trainer(object):
             # load processed image
             for image in self.opt.images:
                 assert image.endswith('_rgba.png') # the rest of this code assumes that the _rgba image has been passed.
+            # Here we load the known view, which is taken from self.rgb later
+            rgbas_z123 = [cv2.cvtColor(cv2.imread(image, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGRA2RGBA) for image in self.opt.images_z123]
             rgbas = [cv2.cvtColor(cv2.imread(image, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGRA2RGBA) for image in self.opt.images]
             rgba_hw = np.stack([cv2.resize(rgba, (w, h), interpolation=cv2.INTER_AREA).astype(np.float32) / 255 for rgba in rgbas])
             rgb_hw = rgba_hw[..., :3] * rgba_hw[..., 3:] + (1 - rgba_hw[..., 3:])
@@ -335,7 +337,7 @@ class Trainer(object):
 
             # encode embeddings for zero123
             if 'zero123' in self.guidance:
-                rgba_256 = np.stack([cv2.resize(rgba, (256, 256), interpolation=cv2.INTER_AREA).astype(np.float32) / 255 for rgba in rgbas])
+                rgba_256 = np.stack([cv2.resize(rgba, (256, 256), interpolation=cv2.INTER_AREA).astype(np.float32) / 255 for rgba in rgbas_z123])
                 rgbs_256 = rgba_256[..., :3] * rgba_256[..., 3:] + (1 - rgba_256[..., 3:])
                 rgb_256 = torch.from_numpy(rgbs_256).permute(0,3,1,2).contiguous().to(self.device)
                 guidance_embeds = self.guidance['zero123'].get_img_embeds(rgb_256)
@@ -380,6 +382,7 @@ class Trainer(object):
             (self.global_step % self.opt.known_view_interval == 0)
 
         # override random camera with fixed known camera
+        # I think data tells us from which angle the render should be taken.
         if do_rgbd_loss:
             data = self.default_view_data
 
@@ -390,8 +393,8 @@ class Trainer(object):
         # progressively relaxing view range
         if self.opt.progressive_view:
             r = min(1.0, self.opt.progressive_view_init_ratio + 2.0*exp_iter_ratio)
-            self.opt.phi_range = [self.opt.default_azimuth * (1 - r) + self.opt.full_phi_range[0] * r,
-                                  self.opt.default_azimuth * (1 - r) + self.opt.full_phi_range[1] * r]
+            self.opt.phi_range = [self.opt.default_azimuth_z123 * (1 - r) + self.opt.full_phi_range[0] * r,
+                                  self.opt.default_azimuth_z123 * (1 - r) + self.opt.full_phi_range[1] * r]
             self.opt.theta_range = [self.opt.default_polar * (1 - r) + self.opt.full_theta_range[0] * r,
                                     self.opt.default_polar * (1 - r) + self.opt.full_theta_range[1] * r]
             self.opt.radius_range = [self.opt.default_radius * (1 - r) + self.opt.full_radius_range[0] * r,
@@ -408,6 +411,7 @@ class Trainer(object):
         mvp = data['mvp'] # [B, 4, 4]
 
         B, N = rays_o.shape[:2]
+        # How does this effect the nerf render and how does it effecr zero123 renders
         H, W = data['H'], data['W']
 
         # When ref_data has B images > opt.batch_size
@@ -581,10 +585,13 @@ class Trainer(object):
 
             if 'zero123' in self.guidance:
 
+                # Bottom line for these guys is that they are random but correspond to the rendered view of the 3dModel (== pred_rgb)
                 polar = data['polar']
                 azimuth = data['azimuth']
                 radius = data['radius']
 
+                # self.embeddings contain images. It would be interesting to read what the difference to pred_rgb is...
+                # Checked: The difference is that pred_rgb is the rendering from the current model
                 loss = loss + self.guidance['zero123'].train_step(self.embeddings['zero123']['default'], pred_rgb, polar, azimuth, radius, guidance_scale=self.opt.guidance_scale,
                                                                   as_latent=as_latent, grad_scale=self.opt.lambda_guidance, save_guidance_path=save_guidance_path)
 

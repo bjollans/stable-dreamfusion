@@ -30,6 +30,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default=None)
 
     parser.add_argument('--image', default=None, help="image prompt")
+    parser.add_argument('--image_z123', default=None, help="image prompt for zero123 inference")
     parser.add_argument('--image_config', default=None, help="image config csv")
 
     parser.add_argument('--known_view_interval', type=int, default=4, help="train default view with RGB loss every & iters, only valid if --image is not None.")
@@ -105,6 +106,7 @@ if __name__ == '__main__':
     parser.add_argument('--default_radius', type=float, default=3.2, help="radius for the default view")
     parser.add_argument('--default_polar', type=float, default=90, help="polar for the default view")
     parser.add_argument('--default_azimuth', type=float, default=0, help="azimuth for the default view")
+    parser.add_argument('--default_azimuth_z123', type=float, default=None, help="azimuth for the default view for z123 rendering")
     parser.add_argument('--default_fovy', type=float, default=20, help="fovy for the default view")
 
     parser.add_argument('--progressive_view', action='store_true', help="progressively expand view sampling range from default to full")
@@ -161,6 +163,9 @@ if __name__ == '__main__':
     parser.add_argument('--exp_start_iter', type=int, default=None, help="start iter # for experiment, to calculate progressive_view and progressive_level")
     parser.add_argument('--exp_end_iter', type=int, default=None, help="end iter # for experiment, to calculate progressive_view and progressive_level")
 
+    if opt.image_z123 is None:
+        opt.image_z123 = opt.image
+
     opt = parser.parse_args()
 
     if opt.O:
@@ -178,7 +183,7 @@ if __name__ == '__main__':
             opt.guidance.append('IF')
         opt.latent_iter_ratio = 0 # must not do as_latent
 
-    opt.images, opt.ref_radii, opt.ref_polars, opt.ref_azimuths, opt.zero123_ws = [], [], [], [], []
+    opt.images, opt.images_z123, opt.ref_radii, opt.ref_polars, opt.ref_azimuths, opt.zero123_ws = [], [], [], [], [], []
     opt.default_zero123_w = 1
 
     opt.exp_start_iter = opt.exp_start_iter or 0
@@ -220,9 +225,11 @@ if __name__ == '__main__':
 
         if opt.image is not None:
             opt.images += [opt.image]
+            opt.images_z123 += [opt.image_z123]
             opt.ref_radii += [opt.default_radius]
             opt.ref_polars += [opt.default_polar]
             opt.ref_azimuths += [opt.default_azimuth]
+            opt.ref_azimuths_z123 += [opt.default_azimuth_z123]
             opt.zero123_ws += [opt.default_zero123_w]
 
         if opt.image_config is not None:
@@ -237,6 +244,7 @@ if __name__ == '__main__':
                 opt.default_radius = opt.ref_radii[0]
                 opt.default_polar = opt.ref_polars[0]
                 opt.default_azimuth = opt.ref_azimuths[0]
+                opt.default_azimuth_z123 = opt.ref_azimuths_z123[0]
                 opt.default_zero123_w = opt.zero123_ws[0]
 
     # reset to None

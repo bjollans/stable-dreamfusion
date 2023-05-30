@@ -124,6 +124,8 @@ class Zero123(nn.Module):
                 angles[i][j] = angle_between_2_sph(sv1, sv2)
         return angles
 
+    # This only gets executed when we do not do RGB loss
+    # Need to understand if I should add a specific angle as well for zero123 image generation
     def train_step(self, embeddings, pred_rgb, polar, azimuth, radius, guidance_scale=3, as_latent=False, grad_scale=1, save_guidance_path:Path=None):
         # pred_rgb: tensor [1, 3, H, W] in [0, 1]
 
@@ -172,6 +174,7 @@ class Zero123(nn.Module):
 
             noise_preds = []
             # Loop through each ref image
+            # I need to add a new angle for this, because there is one angle for the rgb loss to know from where to do the render.
             for (zero123_w, c_crossattn, c_concat, ref_polar, ref_azimuth, ref_radius) in zip(zero123_ws.T,
                                                                                               embeddings['c_crossattn'], embeddings['c_concat'],
                                                                                               ref_polars, ref_azimuths, ref_radii):

@@ -251,6 +251,7 @@ class NeRFDataset:
 
         if self.training:
             # random pose on the fly
+            # This must be where the render angles get sampled
             poses, dirs, thetas, phis, radius = rand_poses(B, self.device, self.opt, radius_range=self.opt.radius_range, theta_range=self.opt.theta_range, phi_range=self.opt.phi_range, return_dirs=True, angle_overhead=self.opt.angle_overhead, angle_front=self.opt.angle_front, uniform_sphere_rate=self.opt.uniform_sphere_rate)
 
             # random focal
@@ -290,9 +291,11 @@ class NeRFDataset:
 
         mvp = projection @ torch.inverse(poses) # [1, 4, 4]
 
+        # 90% sure that rays gets influenced by phis and thetas, etc. and that then basically redundant information is passed around
         # sample a low-resolution but full image
         rays = get_rays(poses, intrinsics, self.H, self.W, -1)
 
+        # Answers my question:
         # delta polar/azimuth/radius to default view
         delta_polar = thetas - self.opt.default_polar
         delta_azimuth = phis - self.opt.default_azimuth
