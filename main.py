@@ -183,7 +183,7 @@ if __name__ == '__main__':
             opt.guidance.append('IF')
         opt.latent_iter_ratio = 0 # must not do as_latent
 
-    opt.images, opt.images_z123, opt.ref_radii, opt.ref_polars, opt.ref_azimuths, opt.zero123_ws = [], [], [], [], [], []
+    opt.images, opt.images_z123, opt.ref_radii, opt.ref_polars, opt.ref_azimuths, opt.ref_azimuths, opt.zero123_ws = [], [], [], [], [], [], []
     opt.default_zero123_w = 1
 
     opt.exp_start_iter = opt.exp_start_iter or 0
