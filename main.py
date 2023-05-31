@@ -163,10 +163,10 @@ if __name__ == '__main__':
     parser.add_argument('--exp_start_iter', type=int, default=None, help="start iter # for experiment, to calculate progressive_view and progressive_level")
     parser.add_argument('--exp_end_iter', type=int, default=None, help="end iter # for experiment, to calculate progressive_view and progressive_level")
 
+    opt = parser.parse_args()
+
     if opt.image_z123 is None:
         opt.image_z123 = opt.image
-
-    opt = parser.parse_args()
 
     if opt.O:
         opt.fp16 = True
