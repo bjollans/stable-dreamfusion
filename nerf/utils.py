@@ -313,27 +313,42 @@ class Trainer(object):
             for image in self.opt.images:
                 assert image.endswith('_rgba.png') # the rest of this code assumes that the _rgba image has been passed.
             # Here we load the known view, which is taken from self.rgb later
-            rgbas = [cv2.cvtColor(cv2.imread(image, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGRA2RGBA) for image in self.opt.images]
+            rgbas_rgb_loss = [cv2.cvtColor(cv2.imread(image, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGRA2RGBA) for image in self.opt.images_rgb_loss]
             rgbas = [cv2.cvtColor(cv2.imread(image, cv2.IMREAD_UNCHANGED), cv2.COLOR_BGRA2RGBA) for image in self.opt.images]
             rgba_hw = np.stack([cv2.resize(rgba, (w, h), interpolation=cv2.INTER_AREA).astype(np.float32) / 255 for rgba in rgbas])
+            rgba_hw_rgb_loss = np.stack([cv2.resize(rgba, (w, h), interpolation=cv2.INTER_AREA).astype(np.float32) / 255 for rgba in rgbas_rgb_loss])
             rgb_hw = rgba_hw[..., :3] * rgba_hw[..., 3:] + (1 - rgba_hw[..., 3:])
+            rgb_hw_rgb_loss = rgba_hw_rgb_loss[..., :3] * rgba_hw_rgb_loss[..., 3:] + (1 - rgba_hw_rgb_loss[..., 3:])
             self.rgb = torch.from_numpy(rgb_hw).permute(0,3,1,2).contiguous().to(self.device)
+            self.rgb_rgb_loss = torch.from_numpy(rgb_hw_rgb_loss).permute(0,3,1,2).contiguous().to(self.device)
             self.mask = torch.from_numpy(rgba_hw[..., 3] > 0.5).to(self.device)
+            self.mask_rgb_loss = torch.from_numpy(rgba_hw_rgb_loss[..., 3] > 0.5).to(self.device)
             print(f'[INFO] dataset: load image prompt {self.opt.images} {self.rgb.shape}')
+            print(f'[INFO] dataset: load image rgb_loss prompt {self.opt.images_rgb_loss} {self.rgb_rgb_loss.shape}')
 
             # load depth
             depth_paths = [image.replace('_rgba.png', '_depth.png') for image in self.opt.images]
+            depth_paths_rgb_loss = [image.replace('_rgba.png', '_depth.png') for image in self.opt.images_rgb_loss]
             depths = [cv2.imread(depth_path, cv2.IMREAD_UNCHANGED) for depth_path in depth_paths]
+            depths_rgb_loss = [cv2.imread(depth_path, cv2.IMREAD_UNCHANGED) for depth_path in depth_paths_rgb_loss]
             depth = np.stack([cv2.resize(depth, (w, h), interpolation=cv2.INTER_AREA) for depth in depths])
+            depth_rgb_loss = np.stack([cv2.resize(depth, (w, h), interpolation=cv2.INTER_AREA) for depth in depths_rgb_loss])
             self.depth = torch.from_numpy(depth.astype(np.float32) / 255).to(self.device)  # TODO: this should be mapped to FP16
+            self.depth_rgb_loss = torch.from_numpy(depth_rgb_loss.astype(np.float32) / 255).to(self.device)  # TODO: this should be mapped to FP16
             print(f'[INFO] dataset: load depth prompt {depth_paths} {self.depth.shape}')
+            print(f'[INFO] dataset: load depth rgb_loss prompt {depth_paths_rgb_loss} {self.depth_rgb_loss.shape}')
 
             # load normal   # TODO: don't load if normal loss is 0
             normal_paths = [image.replace('_rgba.png', '_normal.png') for image in self.opt.images]
+            normal_paths_rgb_loss = [image.replace('_rgba.png', '_normal.png') for image in self.opt.images_rgb_loss]
             normals = [cv2.imread(normal_path, cv2.IMREAD_UNCHANGED) for normal_path in normal_paths]
+            normals_rgb_loss = [cv2.imread(normal_path, cv2.IMREAD_UNCHANGED) for normal_path in normal_paths_rgb_loss]
             normal = np.stack([cv2.resize(normal, (w, h), interpolation=cv2.INTER_AREA) for normal in normals])
+            normal_rgb_loss = np.stack([cv2.resize(normal, (w, h), interpolation=cv2.INTER_AREA) for normal in normals_rgb_loss])
             self.normal = torch.from_numpy(normal.astype(np.float32) / 255).to(self.device)
+            self.normal_rgb_loss = torch.from_numpy(normal_rgb_loss.astype(np.float32) / 255).to(self.device)
             print(f'[INFO] dataset: load normal prompt {normal_paths} {self.normal.shape}')
+            print(f'[INFO] dataset: load normal rgb_loss prompt {normal_paths_rgb_loss} {self.normal_rgb_loss.shape}')
 
             # encode embeddings for zero123
             if 'zero123' in self.guidance:
@@ -484,10 +499,10 @@ class Trainer(object):
 
         # known view loss
         if do_rgbd_loss:
-            gt_mask = self.mask # [B, H, W]
-            gt_rgb = self.rgb   # [B, 3, H, W]
-            gt_normal = self.normal # [B, H, W, 3]
-            gt_depth = self.depth   # [B, H, W]
+            gt_mask = self.mask_rgb_loss # [B, H, W]
+            gt_rgb = self.rgb_rgb_loss   # [B, 3, H, W]
+            gt_normal = self.normal_rgb_loss # [B, H, W, 3]
+            gt_depth = self.depth_rgb_loss   # [B, H, W]
 
             if len(gt_rgb) > self.opt.batch_size:
                 gt_mask = gt_mask[choice]
