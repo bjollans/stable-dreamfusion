@@ -168,8 +168,8 @@ if __name__ == '__main__':
     if opt.image_z123 is None:
         opt.image_z123 = opt.image
 
-    if opt.azimuth_z123 is None:
-        opt.azimuth_z123 = opt.azimuth
+    if opt.default_azimuth_z123 is None:
+        opt.default_azimuth_z123 = opt.default_azimuth
 
     if opt.O:
         opt.fp16 = True
