@@ -632,7 +632,7 @@ class Trainer(object):
                 print(f"!!!!!asd3 loss {loss}")
 
             if self.opt.lambda_entropy > 0:
-                print(f"!!!!!asd4")
+                print(f"!!!!!asd4 outputs['weights'] {outputs['weights']}")
                 alphas = outputs['weights'].clamp(1e-5, 1 - 1e-5)
                 print(f"!!!!!asd5 alphas {alphas}")
                 # alphas = alphas ** 2 # skewed entropy, favors 0 over 1

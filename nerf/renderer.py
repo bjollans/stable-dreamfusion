@@ -1175,13 +1175,16 @@ class NeRFRenderer(nn.Module):
         # return: pred_rgb: [B, N, 3]
         B, N = rays_o.shape[:2]
         device = rays_o.device
+        print(f"!!!dfg0 rays_o {rays_o} rays_d {rays_d} mvp {mvp} h {h} w {w}")
 
         if self.dmtet:
             results = self.run_dmtet(rays_o, rays_d, mvp, h, w, **kwargs)
         elif self.cuda_ray:
             results = self.run_cuda(rays_o, rays_d, **kwargs)
+            print(f"!!!dfg1 results {results}")
         elif self.taichi_ray:
             results = self.run_taichi(rays_o, rays_d, **kwargs)
+            print(f"!!!dfg2 results {results}")
         else:
             if staged:
                 depth = torch.empty((B, N), device=device)
@@ -1205,5 +1208,6 @@ class NeRFRenderer(nn.Module):
 
             else:
                 results = self.run(rays_o, rays_d, **kwargs)
+                print(f"!!!dfg3 results {results}")
 
         return results
