@@ -625,32 +625,54 @@ class Trainer(object):
             print("!!!not dmtet")
 
             if self.opt.lambda_opacity > 0:
+                print("!!!!!asd1")
                 loss_opacity = (outputs['weights_sum'] ** 2).mean()
+                print("!!!!!asd2")
                 loss = loss + self.opt.lambda_opacity * loss_opacity
+                print("!!!!!asd3")
 
             if self.opt.lambda_entropy > 0:
+                print("!!!!!asd4")
                 alphas = outputs['weights'].clamp(1e-5, 1 - 1e-5)
+                print("!!!!!asd5")
                 # alphas = alphas ** 2 # skewed entropy, favors 0 over 1
+                print("!!!!!asd6")
                 loss_entropy = (- alphas * torch.log2(alphas) - (1 - alphas) * torch.log2(1 - alphas)).mean()
+                print("!!!!!asd7")
                 lambda_entropy = self.opt.lambda_entropy * min(1, 2 * self.global_step / self.opt.iters)
+                print("!!!!!asd8")
                 loss = loss + lambda_entropy * loss_entropy
+                print("!!!!!asd9")
 
             if self.opt.lambda_2d_normal_smooth > 0 and 'normal_image' in outputs:
+                print("!!!!!asd10")
                 # pred_vals = outputs['normal_image'].reshape(B, H, W, 3).permute(0, 3, 1, 2).contiguous()
+                print("!!!!!asd11")
                 # smoothed_vals = TF.gaussian_blur(pred_vals.detach(), kernel_size=9)
+                print("!!!!!asd12")
                 # loss_smooth = F.mse_loss(pred_vals, smoothed_vals)
+                print("!!!!!asd13")
                 # total-variation
+                print("!!!!!asd14")
                 loss_smooth = (pred_normal[:, 1:, :, :] - pred_normal[:, :-1, :, :]).square().mean() + \
                               (pred_normal[:, :, 1:, :] - pred_normal[:, :, :-1, :]).square().mean()
+                print("!!!!!asd15")
                 loss = loss + self.opt.lambda_2d_normal_smooth * loss_smooth
+                print("!!!!!asd16")
 
             if self.opt.lambda_orient > 0 and 'loss_orient' in outputs:
+                print("!!!!!asd17")
                 loss_orient = outputs['loss_orient']
+                print("!!!!!asd18")
                 loss = loss + self.opt.lambda_orient * loss_orient
+                print("!!!!!asd19")
 
             if self.opt.lambda_3d_normal_smooth > 0 and 'loss_normal_perturb' in outputs:
+                print("!!!!!asd20")
                 loss_normal_perturb = outputs['loss_normal_perturb']
+                print("!!!!!asd21")
                 loss = loss + self.opt.lambda_3d_normal_smooth * loss_normal_perturb
+                print("!!!!!asd22")
 
         else:
             print("!!!dmtet")
