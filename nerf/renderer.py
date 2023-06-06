@@ -847,7 +847,8 @@ class NeRFRenderer(nn.Module):
             
             sdf *= -10 # INNER is POSITIVE, also make it stronger
             self.sdf.data += sdf.to(self.sdf.data.dtype).clamp(-1, 1)
-            print(f'init sdf upper if: {sdf.min()}, {sdf.max()}')
+            print(f'init sdf upper if: {self.sdf.min()}, {self.sdf.max()}')
+            print(f'init sdf upper if: {self.sdf.data.min()}, {self.sdf.data.max()}')
 
         else:
 
@@ -870,7 +871,8 @@ class NeRFRenderer(nn.Module):
             print(f'init sigma: {sigma.min()}, {sigma.max()}')
             
             self.sdf.data += (sigma - density_thresh).clamp(-1, 1)
-            print(f'init sdf else: {sdf.min()}, {sdf.max()}')
+            print(f'init sdf else: {self.sdf.min()}, {self.sdf.max()}')
+            print(f'init sdf else: {self.sdf.data.min()}, {self.sdf.data.max()}')
 
         print(f'[INFO] init dmtet: scale = {self.tet_scale}')
 
