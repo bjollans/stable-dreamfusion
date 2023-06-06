@@ -835,7 +835,7 @@ class NeRFRenderer(nn.Module):
                 # decide compact_steps
                 n_step = max(min(N // n_alive, 8), 1)
                 print("!!!!yui14")
-                print(f"n_step: {n_step.min()}, {n_step.max()}")
+                print(f"n_step: {n_step}")
                 
                 xyzs, dirs, ts = raymarching.march_rays(n_alive, n_step, rays_alive, rays_t, rays_o, rays_d, self.bound, self.density_bitfield, self.cascade, self.grid_size, nears, fars, perturb if step == 0 else False, self.opt.dt_gamma, self.opt.max_steps)
                 dirs = safe_normalize(dirs)
