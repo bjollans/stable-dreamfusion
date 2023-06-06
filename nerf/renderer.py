@@ -844,9 +844,10 @@ class NeRFRenderer(nn.Module):
             import cubvh
             BVH = cubvh.cuBVH(mesh.vertices, mesh.faces)
             sdf, _, _ = BVH.signed_distance(self.verts, return_uvw=False, mode='watertight')
-            print(f'init sdf upper if: {sdf.min()}, {sdf.max()}')
+            
             sdf *= -10 # INNER is POSITIVE, also make it stronger
             self.sdf.data += sdf.to(self.sdf.data.dtype).clamp(-1, 1)
+            print(f'init sdf upper if: {sdf.min()}, {sdf.max()}')
 
         else:
 
@@ -867,8 +868,9 @@ class NeRFRenderer(nn.Module):
             # init sigma
             sigma = self.density(self.verts)['sigma'] # new verts
             print(f'init sigma: {sigma.min()}, {sigma.max()}')
-            print(f'init sdf else: {sdf.min()}, {sdf.max()}')
+            
             self.sdf.data += (sigma - density_thresh).clamp(-1, 1)
+            print(f'init sdf else: {sdf.min()}, {sdf.max()}')
 
         print(f'[INFO] init dmtet: scale = {self.tet_scale}')
 
