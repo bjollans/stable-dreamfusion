@@ -880,28 +880,43 @@ class Trainer(object):
             self.optimizer.zero_grad()
 
             with torch.cuda.amp.autocast(enabled=self.fp16):
+                print("!!!qwe1")
                 pred_rgbs, pred_depths, loss = self.train_step(data)
+                print("!!!qwe2")
 
             self.scaler.scale(loss).backward()
+            print("!!!qwe3")
             self.post_train_step()
+            print("!!!qwe4")
             self.scaler.step(self.optimizer)
+            print("!!!qwe5")
             self.scaler.update()
+            print("!!!qwe6")
 
             if self.scheduler_update_every_step:
+                print("!!!qwe7")
                 self.lr_scheduler.step()
+                print("!!!qwe8")
 
             total_loss += loss.detach()
+            print("!!!qwe9")
 
         if self.ema is not None:
+            print("!!!qwe10")
             self.ema.update()
+            print("!!!qwe11")
 
         average_loss = total_loss.item() / step
+        print("!!!qwe12")
 
         if not self.scheduler_update_every_step:
             if isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                print("!!!qwe13")
                 self.lr_scheduler.step(average_loss)
             else:
+                print("!!!qwe14")
                 self.lr_scheduler.step()
+                print("!!!qwe15")
 
         outputs = {
             'loss': average_loss,
@@ -1012,69 +1027,113 @@ class Trainer(object):
                     save_guidance_path = save_guidance_folder / f'step_{self.global_step:07d}.png'
                 else:
                     save_guidance_path = None
+                print("!!!zxc1")
                 pred_rgbs, pred_depths, loss = self.train_step(data, save_guidance_path=save_guidance_path)
+                print("!!!zxc2")
 
             # hooked grad clipping for RGB space
             if self.opt.grad_clip_rgb >= 0:
+                print("!!!zxc3")
                 def _hook(grad):
                     if self.opt.fp16:
                         # correctly handle the scale
+                        print("!!!zxc4")
                         grad_scale = self.scaler._get_scale_async()
+                        print("!!!zxc5")
                         return grad.clamp(grad_scale * -self.opt.grad_clip_rgb, grad_scale * self.opt.grad_clip_rgb)
                     else:
+                        print("!!!zxc6")
                         return grad.clamp(-self.opt.grad_clip_rgb, self.opt.grad_clip_rgb)
+                print("!!!zxc7")
                 pred_rgbs.register_hook(_hook)
                 # pred_rgbs.retain_grad()
 
+            print("!!!zxc8")
             self.scaler.scale(loss).backward()
+            print("!!!zxc9")
 
             self.post_train_step()
+            print("!!!zxc10")
             self.scaler.step(self.optimizer)
+            print("!!!zxc11")
             self.scaler.update()
+            print("!!!zxc12")
 
             if self.scheduler_update_every_step:
+                print("!!!zxc13")
                 self.lr_scheduler.step()
+                print("!!!zxc14")
 
             loss_val = loss.item()
+            print("!!!zxc15")
             total_loss += loss_val
+            print("!!!zxc16")
 
             if self.local_rank == 0:
+                print("!!!zxc17")
                 # if self.report_metric_at_train:
                 #     for metric in self.metrics:
                 #         metric.update(preds, truths)
 
                 if self.use_tensorboardX:
+                    print("!!!zxc18")
                     self.writer.add_scalar("train/loss", loss_val, self.global_step)
+                    print("!!!zxc19")
                     self.writer.add_scalar("train/lr", self.optimizer.param_groups[0]['lr'], self.global_step)
+                    print("!!!zxc20")
 
                 if self.scheduler_update_every_step:
+                    print("!!!zxc21")
                     pbar.set_description(f"loss={loss_val:.4f} ({total_loss/self.local_step:.4f}), lr={self.optimizer.param_groups[0]['lr']:.6f}")
+                    print("!!!zxc22")
                 else:
+                    print("!!!zxc23")
                     pbar.set_description(f"loss={loss_val:.4f} ({total_loss/self.local_step:.4f})")
+                    print("!!!zxc24")
+                print("!!!zxc25")
                 pbar.update(loader.batch_size)
+                print("!!!zxc26")
 
         if self.ema is not None:
+            print("!!!zxc27")
             self.ema.update()
+            print("!!!zxc28")
 
         average_loss = total_loss / self.local_step
+        print("!!!zxc29")
         self.stats["loss"].append(average_loss)
+        print("!!!zxc30")
 
         if self.local_rank == 0:
+            print("!!!zxc31")
             pbar.close()
+            print("!!!zxc32")
             if self.report_metric_at_train:
+                print("!!!zxc33")
                 for metric in self.metrics:
+                    print("!!!zxc34")
                     self.log(metric.report(), style="red")
+                    print("!!!zxc35")
                     if self.use_tensorboardX:
+                        print("!!!zxc36")
                         metric.write(self.writer, self.epoch, prefix="train")
+                        print("!!!zxc37")
                     metric.clear()
+                    print("!!!zxc38")
 
         if not self.scheduler_update_every_step:
+            print("!!!zxc39")
             if isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                print("!!!zxc40")
                 self.lr_scheduler.step(average_loss)
+                print("!!!zxc41")
             else:
+                print("!!!zxc42")
                 self.lr_scheduler.step()
+                print("!!!zxc43")
 
         cpu_mem, gpu_mem = get_CPU_mem(), get_GPU_mem()[0]
+        print("!!!zxc44")
         self.log(f"==> [{time.strftime('%Y-%m-%d_%H-%M-%S')}] Finished Epoch {self.epoch}/{max_epochs}. CPU={cpu_mem:.1f}GB, GPU={gpu_mem:.1f}GB.")
 
 
