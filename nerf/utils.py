@@ -418,6 +418,7 @@ class Trainer(object):
                                     self.opt.default_fovy * (1 - r) + self.opt.full_fovy_range[1] * r]
 
         # progressively increase max_level
+        print(f'train 1 {self.opt.progressive_level}')
         if self.opt.progressive_level:
             self.model.max_level = min(1.0, 0.25 + 2.0*exp_iter_ratio)
 
@@ -485,6 +486,7 @@ class Trainer(object):
             else:
                 bg_color = torch.rand(3).to(self.device) # single color random bg
 
+        print(f'train render {self.opt.progressive_level}')
         outputs = self.model.render(rays_o, rays_d, mvp, H, W, staged=False, perturb=True, bg_color=bg_color, ambient_ratio=ambient_ratio, shading=shading, binarize=binarize)
         pred_depth = outputs['depth'].reshape(B, 1, H, W)
         pred_mask = outputs['weights_sum'].reshape(B, 1, H, W)
@@ -600,6 +602,7 @@ class Trainer(object):
 
             if 'zero123' in self.guidance:
 
+                print("zero123 in guidance")
                 # Bottom line for these guys is that they are random but correspond to the rendered view of the 3dModel (== pred_rgb)
                 polar = data['polar']
                 azimuth = data['azimuth']
@@ -619,6 +622,7 @@ class Trainer(object):
 
         # regularizations
         if not self.opt.dmtet:
+            print("!!!not dmtet")
 
             if self.opt.lambda_opacity > 0:
                 loss_opacity = (outputs['weights_sum'] ** 2).mean()
@@ -649,7 +653,7 @@ class Trainer(object):
                 loss = loss + self.opt.lambda_3d_normal_smooth * loss_normal_perturb
 
         else:
-
+            print("!!!dmtet")
             if self.opt.lambda_mesh_normal > 0:
                 loss = loss + self.opt.lambda_mesh_normal * outputs['normal_loss']
 
@@ -745,16 +749,20 @@ class Trainer(object):
         for epoch in range(self.epoch + 1, max_epochs + 1):
             self.epoch = epoch
 
+            print(f"==> Epoch {self.epoch} starts:")
             self.train_one_epoch(train_loader, max_epochs)
 
             if self.workspace is not None and self.local_rank == 0:
+                print(f"==> Saving checkpoint to {self.workspace}")
                 self.save_checkpoint(full=True, best=False)
 
             if self.epoch % self.opt.eval_interval == 0:
+                print(f"==> Evaluating at epoch {self.epoch}")
                 self.evaluate_one_epoch(valid_loader)
                 self.save_checkpoint(full=False, best=True)
 
             if self.epoch % self.opt.test_interval == 0 or self.epoch == max_epochs:
+                print(f"==> Testing at epoch {self.epoch}")
                 self.test(test_loader)
 
         end_t = time.time()
@@ -1059,6 +1067,8 @@ class Trainer(object):
             for metric in self.metrics:
                 metric.clear()
 
+        print(f"==> [{time.strftime('%Y-%m-%d_%H-%M-%S')}] Start evaluating 1 {name} ...")
+
         self.model.eval()
 
         if self.ema is not None:
@@ -1068,6 +1078,7 @@ class Trainer(object):
         if self.local_rank == 0:
             pbar = tqdm.tqdm(total=len(loader) * loader.batch_size, bar_format='{desc}: {percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
 
+        print(f"==> [{time.strftime('%Y-%m-%d_%H-%M-%S')}] Start evaluating 2 {name} ...")
         with torch.no_grad():
             self.local_step = 0
 

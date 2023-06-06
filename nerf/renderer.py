@@ -150,6 +150,18 @@ class DMTet():
 
             interp_v = unique_edges[mask_edges]
 
+            # add print statements for all variables: 
+            print('pos_nx3', pos_nx3.shape, pos_nx3.dtype, pos_nx3.min(0), pos_nx3.max(0))
+            print('sdf_n', sdf_n.shape, sdf_n.dtype, sdf_n.min(0), sdf_n.max(0))
+            print('tet_fx4', tet_fx4.shape, tet_fx4.dtype, tet_fx4.min(0), tet_fx4.max(0))
+            print('occ_n', occ_n.shape, occ_n.dtype, occ_n.min(0), occ_n.max(0))
+            print('occ_fx4', occ_fx4.shape, occ_fx4.dtype, occ_fx4.min(0), occ_fx4.max(0))
+            print('occ_sum', occ_sum.shape, occ_sum.dtype, occ_sum.min(0), occ_sum.max(0))
+            print('all_edges', all_edges.shape, all_edges.dtype, all_edges.min(0), all_edges.max(0))
+            print('unique_edges', unique_edges.shape, unique_edges.dtype, unique_edges.min(0), unique_edges.max(0))
+            print('idx_map', idx_map.shape, idx_map.dtype, idx_map.min(0), idx_map.max(0))
+            print('interp_v', interp_v.shape, interp_v.dtype, interp_v.min(0), interp_v.max(0))
+
         edges_to_interp = pos_nx3[interp_v.reshape(-1)].reshape(-1,2,3)
         edges_to_interp_sdf = sdf_n[interp_v.reshape(-1)].reshape(-1,2,1)
         edges_to_interp_sdf[:,-1] *= -1
@@ -832,6 +844,7 @@ class NeRFRenderer(nn.Module):
             import cubvh
             BVH = cubvh.cuBVH(mesh.vertices, mesh.faces)
             sdf, _, _ = BVH.signed_distance(self.verts, return_uvw=False, mode='watertight')
+            print(f'init sdf upper if: {sdf.min()}, {sdf.max()}')
             sdf *= -10 # INNER is POSITIVE, also make it stronger
             self.sdf.data += sdf.to(self.sdf.data.dtype).clamp(-1, 1)
 
@@ -851,9 +864,10 @@ class NeRFRenderer(nn.Module):
             valid_verts = self.verts[mask]
             self.tet_scale = valid_verts.abs().amax(dim=0) + 1e-1
             self.verts = self.verts * self.tet_scale
-
             # init sigma
             sigma = self.density(self.verts)['sigma'] # new verts
+            print(f'init sigma: {sigma.min()}, {sigma.max()}')
+            print(f'init sdf else: {sdf.min()}, {sdf.max()}')
             self.sdf.data += (sigma - density_thresh).clamp(-1, 1)
 
         print(f'[INFO] init dmtet: scale = {self.tet_scale}')
@@ -874,6 +888,7 @@ class NeRFRenderer(nn.Module):
 
         # get mesh
         sdf = self.sdf
+        print(f'[INFO] sdf: {sdf.min()}, {sdf.max()}, {sdf.mean()} {sdf.shape}') 
         deform = torch.tanh(self.deform) / self.opt.tet_grid_size
 
         verts, faces = self.dmtet(self.verts + deform, sdf, self.indices)
