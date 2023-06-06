@@ -826,7 +826,7 @@ class NeRFRenderer(nn.Module):
                 # count alive rays 
                 n_alive = rays_alive.shape[0]
                 print("!!!!yui13")
-                print(f"n_alive: {n_alive.min()}, {n_alive.max()}")
+                print(f"n_alive: {n_alive}")
 
                 # exit loop
                 if n_alive <= 0:
