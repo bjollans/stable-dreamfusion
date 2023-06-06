@@ -854,8 +854,8 @@ class NeRFRenderer(nn.Module):
                 print(f"rays_alive: {rays_alive.min()}, {rays_alive.max()}")
                 print(f"rays_t: {rays_t.min()}, {rays_t.max()}")
                 print(f"n_alive: {n_alive.min()}, {n_alive.max()}")
-                print(f"n_step: {n_step.min()}, {n_step.max()}")
-                print(f"step: {step.min()}, {step.max()}")
+                print(f"n_step: {n_step}")
+                print(f"step: {step}")
 
                 rays_alive = rays_alive[rays_alive >= 0]
                 print("!!!!yui16")
