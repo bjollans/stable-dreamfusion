@@ -732,37 +732,67 @@ class NeRFRenderer(nn.Module):
 
         # pre-calculate near far
         nears, fars = raymarching.near_far_from_aabb(rays_o, rays_d, self.aabb_train if self.training else self.aabb_infer)
+        print("!!!!yui1")
+        print(f"nears: {nears.min()}, {nears.max()}")
+        print(f"fars: {fars.min()}, {fars.max()}")
 
         # random sample light_d if not provided
         if light_d is None:
             # gaussian noise around the ray origin, so the light always face the view dir (avoid dark face)
             light_d = safe_normalize(rays_o + torch.randn(3, device=rays_o.device)) # [N, 3]
+            print("!!!!yui2")
+            print(f"light_d: {light_d.min()}, {light_d.max()}")
 
         results = {}
 
         if self.training:
             xyzs, dirs, ts, rays = raymarching.march_rays_train(rays_o, rays_d, self.bound, self.density_bitfield, self.cascade, self.grid_size, nears, fars, perturb, self.opt.dt_gamma, self.opt.max_steps)
+            print("!!!!yui3")
+            print(f"xyzs: {xyzs.min()}, {xyzs.max()}")
+            print(f"dirs: {dirs.min()}, {dirs.max()}")
+            print(f"ts: {ts.min()}, {ts.max()}")
+            print(f"rays: {rays.min()}, {rays.max()}")
             dirs = safe_normalize(dirs)
+            print("!!!!yui4")
+            print(f"dirs: {dirs.min()}, {dirs.max()}")
 
             if light_d.shape[0] > 1:
+                print("!!!!yui5")
                 flatten_rays = raymarching.flatten_rays(rays, xyzs.shape[0]).long()
+                print(f"flatten_rays: {flatten_rays.min()}, {flatten_rays.max()}")
                 light_d = light_d[flatten_rays]
+                print(f"light_d: {light_d.min()}, {light_d.max()}")
             
             sigmas, rgbs, normals = self(xyzs, dirs, light_d, ratio=ambient_ratio, shading=shading)
+            print("!!!!yui6")
+            print(f"sigmas: {sigmas.min()}, {sigmas.max()}")
+            print(f"rgbs: {rgbs.min()}, {rgbs.max()}")
+            print(f"normals: {normals.min()}, {normals.max()}")
             weights, weights_sum, depth, image = raymarching.composite_rays_train(sigmas, rgbs, ts, rays, T_thresh, binarize)
+            print("!!!!yui7")
+            print(f"weights: {weights.min()}, {weights.max()}")
+            print(f"weights_sum: {weights_sum.min()}, {weights_sum.max()}")
+            print(f"depth: {depth.min()}, {depth.max()}")
+            print(f"image: {image.min()}, {image.max()}")
             
             # normals related regularizations
             if self.opt.lambda_orient > 0 and normals is not None:
                 # orientation loss 
                 loss_orient = weights.detach() * (normals * dirs).sum(-1).clamp(min=0) ** 2
+                print("!!!!yui8")
+                print(f"loss_orient: {loss_orient.min()}, {loss_orient.max()}")
                 results['loss_orient'] = loss_orient.mean()
             
             if self.opt.lambda_3d_normal_smooth > 0 and normals is not None:
                 normals_perturb = self.normal(xyzs + torch.randn_like(xyzs) * 1e-2)
+                print("!!!!yui9")
+                print(f"normals_perturb: {normals_perturb.min()}, {normals_perturb.max()}")
                 results['loss_normal_perturb'] = (normals - normals_perturb).abs().mean()
             
             if (self.opt.lambda_2d_normal_smooth > 0 or self.opt.lambda_normal > 0) and normals is not None:
                 _, _, _, normal_image = raymarching.composite_rays_train(sigmas.detach(), (normals + 1) / 2, ts, rays, T_thresh, binarize)
+                print("!!!!yui10")
+                print(f"normal_image: {normal_image.min()}, {normal_image.max()}")
                 results['normal_image'] = normal_image
             
             # weights normalization
@@ -776,10 +806,18 @@ class NeRFRenderer(nn.Module):
             weights_sum = torch.zeros(N, dtype=dtype, device=device)
             depth = torch.zeros(N, dtype=dtype, device=device)
             image = torch.zeros(N, 3, dtype=dtype, device=device)
-            
+            print("!!!!yui11")
+            print(f"weights_sum: {weights_sum.min()}, {weights_sum.max()}")
+            print(f"depth: {depth.min()}, {depth.max()}")
+            print(f"image: {image.min()}, {image.max()}")
+
             n_alive = N
             rays_alive = torch.arange(n_alive, dtype=torch.int32, device=device) # [N]
             rays_t = nears.clone() # [N]
+            print("!!!!yui12")
+            print(f"rays_alive: {rays_alive.min()}, {rays_alive.max()}")
+            print(f"rays_t: {rays_t.min()}, {rays_t.max()}")
+
 
             step = 0
             
@@ -787,6 +825,8 @@ class NeRFRenderer(nn.Module):
 
                 # count alive rays 
                 n_alive = rays_alive.shape[0]
+                print("!!!!yui13")
+                print(f"n_alive: {n_alive.min()}, {n_alive.max()}")
 
                 # exit loop
                 if n_alive <= 0:
@@ -794,13 +834,32 @@ class NeRFRenderer(nn.Module):
 
                 # decide compact_steps
                 n_step = max(min(N // n_alive, 8), 1)
-
+                print("!!!!yui14")
+                print(f"n_step: {n_step.min()}, {n_step.max()}")
+                
                 xyzs, dirs, ts = raymarching.march_rays(n_alive, n_step, rays_alive, rays_t, rays_o, rays_d, self.bound, self.density_bitfield, self.cascade, self.grid_size, nears, fars, perturb if step == 0 else False, self.opt.dt_gamma, self.opt.max_steps)
                 dirs = safe_normalize(dirs)
                 sigmas, rgbs, normals = self(xyzs, dirs, light_d, ratio=ambient_ratio, shading=shading)
                 raymarching.composite_rays(n_alive, n_step, rays_alive, rays_t, sigmas, rgbs, ts, weights_sum, depth, image, T_thresh, binarize)
+                print("!!!!yui15")
+                print(f"xyzs: {xyzs.min()}, {xyzs.max()}")
+                print(f"dirs: {dirs.min()}, {dirs.max()}")
+                print(f"ts: {ts.min()}, {ts.max()}")
+                print(f"sigmas: {sigmas.min()}, {sigmas.max()}")
+                print(f"rgbs: {rgbs.min()}, {rgbs.max()}")
+                print(f"normals: {normals.min()}, {normals.max()}")
+                print(f"weights_sum: {weights_sum.min()}, {weights_sum.max()}")
+                print(f"depth: {depth.min()}, {depth.max()}")
+                print(f"image: {image.min()}, {image.max()}")
+                print(f"rays_alive: {rays_alive.min()}, {rays_alive.max()}")
+                print(f"rays_t: {rays_t.min()}, {rays_t.max()}")
+                print(f"n_alive: {n_alive.min()}, {n_alive.max()}")
+                print(f"n_step: {n_step.min()}, {n_step.max()}")
+                print(f"step: {step.min()}, {step.max()}")
 
                 rays_alive = rays_alive[rays_alive >= 0]
+                print("!!!!yui16")
+                print(f"rays_alive: {rays_alive.min()}, {rays_alive.max()}")
                 #print(f'step = {step}, n_step = {n_step}, n_alive = {n_alive}, xyzs: {xyzs.shape}')
 
                 step += n_step
@@ -819,6 +878,10 @@ class NeRFRenderer(nn.Module):
         depth = depth.view(*prefix)
 
         weights_sum = weights_sum.reshape(*prefix)
+        print("!!!!yui17")
+        print(f"image: {image.min()}, {image.max()}")
+        print(f"depth: {depth.min()}, {depth.max()}")
+        print(f"weights_sum: {weights_sum.min()}, {weights_sum.max()}")
 
         results['image'] = image
         results['depth'] = depth
