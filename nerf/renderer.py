@@ -748,9 +748,15 @@ class NeRFRenderer(nn.Module):
         if self.training:
             xyzs, dirs, ts, rays = raymarching.march_rays_train(rays_o, rays_d, self.bound, self.density_bitfield, self.cascade, self.grid_size, nears, fars, perturb, self.opt.dt_gamma, self.opt.max_steps)
             print("!!!!yui3")
-            print(f"xyzs: {xyzs.min()}, {xyzs.max()}")
-            print(f"dirs: {dirs.min()}, {dirs.max()}")
-            print(f"ts: {ts.min()}, {ts.max()}")
+            print(f"xyzs: {len(xyzs)}")
+            if len(xyzs) != 0:
+                print(f"xyzs: {xyzs.min()}, {xyzs.max()}")
+            print(f"dirs: {len(dirs)}")
+            if len(dirs) != 0:
+                print(f"dirs: {dirs.min()}, {dirs.max()}")
+            print(f"ts: {len(ts)}")
+            if len(ts) != 0:
+                print(f"ts: {ts.min()}, {ts.max()}")
             print(f"rays: {rays}")
             dirs = safe_normalize(dirs)
             print("!!!!yui4")
