@@ -107,7 +107,7 @@ class _morton3D(Function):
         
         N = coords.shape[0]
 
-        indices = torch.full((1,N), fill_value=torch.nan, dtype=torch.int32, device=coords.device).squeeze()
+        indices = torch.empty(N, dtype=torch.int32, device=coords.device).squeeze()
         
         get_backend().morton3D(coords.int(), N, indices)
 
@@ -129,7 +129,7 @@ class _morton3D_invert(Function):
         
         N = indices.shape[0]
 
-        coords = torch.full((N, 3), fill_value=torch.nan, dtype=torch.int32, device=indices.device)
+        coords = torch.empty(N, dtype=torch.int32, device=indices.device)
         
         get_backend().morton3D_invert(indices.int(), N, coords)
 
@@ -238,7 +238,7 @@ class _march_rays_train(Function):
             noises = torch.zeros(N, dtype=rays_o.dtype, device=rays_o.device)
         
         # first pass: write rays, get total number of points M to render
-        rays = torch.full((N, 2), fill_value=torch.nan, dtype=torch.int32, device=rays_o.device) # id, offset, num_steps
+        rays = torch.empty(N, dtype=torch.int32, device=rays_o.device) # id, offset, num_steps
         get_backend().march_rays_train(rays_o, rays_d, density_bitfield, bound, contract, dt_gamma, max_steps, N, C, H, nears, fars, None, None, None, rays, step_counter, noises)
 
         # allocate based on M
@@ -285,7 +285,7 @@ class _composite_rays_train(Function):
         weights_sum = torch.full((1,N), fill_value=torch.nan, dtype=sigmas.dtype, device=sigmas.device).squeeze()
 
         depth = torch.full((1,N), fill_value=torch.nan, dtype=sigmas.dtype, device=sigmas.device).squeeze()
-        image = torch.full((N, 3), fill_value=torch.nan, dtype=sigmas.dtype, device=sigmas.device)
+        image = torch.full((N, 3), fill_value=torch.nan, dtype=sigmas.dtype, device=sigmas.device).squeeze()
 
         get_backend().composite_rays_train_forward(sigmas, rgbs, ts, rays, M, N, T_thresh, binarize, weights, weights_sum, depth, image)
 
