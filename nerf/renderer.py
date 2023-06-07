@@ -1167,7 +1167,7 @@ class NeRFRenderer(nn.Module):
             if staged:
                 depth = torch.empty(B, N, device=device)
                 image = torch.empty(B, N, 3, device=device)
-                weights_sum = torch.full((B, N), fill_value=torch.nan, device=device)
+                weights_sum = torch.empty(B, N, device=device)
 
                 for b in range(B):
                     head = 0
