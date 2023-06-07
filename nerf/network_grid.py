@@ -68,6 +68,7 @@ class NeRFNetwork(NeRFRenderer):
     def common_forward(self, x):
 
         # sigma
+        # Comment here to not forget: first thing to go NAN is the encoding -> need to check encoder
         enc = self.encoder(x, bound=self.bound, max_level=self.max_level)
         print(f"!!!als")
         print(f"self.bounds: {self.bound}")
