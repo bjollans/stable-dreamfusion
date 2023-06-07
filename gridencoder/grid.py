@@ -247,7 +247,7 @@ class GridEncoder(nn.Module):
         self.n_params = offsets[-1] * level_dim
 
         # parameters
-        self.embeddings = nn.Parameter(torch.empty(offset, level_dim))
+        self.embeddings = nn.Parameter(torch.full((offset, level_dim),torch.nan))
 
         self.reset_parameters()
     
