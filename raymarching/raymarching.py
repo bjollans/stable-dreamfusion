@@ -51,8 +51,8 @@ class _near_far_from_aabb(Function):
 
         N = rays_o.shape[0] # num rays
 
-        nears = torch.full((N), fill_value=torch.nan, dtype=rays_o.dtype, device=rays_o.device)
-        fars = torch.full((N), fill_value=torch.nan, dtype=rays_o.dtype, device=rays_o.device)
+        nears = torch.tensor([torch.nan]*N, dtype=rays_o.dtype, device=rays_o.device)
+        fars = torch.tensor([torch.nan]*N, dtype=rays_o.dtype, device=rays_o.device)
 
         get_backend().near_far_from_aabb(rays_o, rays_d, aabb, N, min_near, nears, fars)
 
@@ -107,7 +107,7 @@ class _morton3D(Function):
         
         N = coords.shape[0]
 
-        indices = torch.full((N), fill_value=torch.nan, dtype=torch.int32, device=coords.device)
+        indices = torch.tensor([torch.nan]*N, dtype=torch.int32, device=coords.device)
         
         get_backend().morton3D(coords.int(), N, indices)
 
@@ -158,7 +158,7 @@ class _packbits(Function):
         N = C * H3 // 8
 
         if bitfield is None:
-            bitfield = torch.full((N), fill_value=torch.nan, dtype=torch.uint8, device=grid.device)
+            bitfield = torch.tensor([torch.nan]*N, dtype=torch.uint8, device=grid.device)
 
         get_backend().packbits(grid, N, thresh, bitfield)
 
@@ -282,9 +282,9 @@ class _composite_rays_train(Function):
         N = rays.shape[0]
 
         weights = torch.zeros(M, dtype=sigmas.dtype, device=sigmas.device) # may leave unmodified, so init with 0
-        weights_sum = torch.full((N), fill_value=torch.nan, dtype=sigmas.dtype, device=sigmas.device)
+        weights_sum = torch.tensor([torch.nan]*N, dtype=sigmas.dtype, device=sigmas.device)
 
-        depth = torch.full((N), fill_value=torch.nan, dtype=sigmas.dtype, device=sigmas.device)
+        depth = torch.tensor([torch.nan]*N, dtype=sigmas.dtype, device=sigmas.device)
         image = torch.full((N, 3), fill_value=torch.nan, dtype=sigmas.dtype, device=sigmas.device)
 
         get_backend().composite_rays_train_forward(sigmas, rgbs, ts, rays, M, N, T_thresh, binarize, weights, weights_sum, depth, image)
