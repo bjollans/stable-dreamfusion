@@ -69,11 +69,29 @@ class NeRFNetwork(NeRFRenderer):
 
         # sigma
         enc = self.encoder(x, bound=self.bound, max_level=self.max_level)
+        print(f"!!!als")
+        print(f"self.bounds: {self.bound}")
+        print(f"max_level: {self.max_level}")
+        print(f"enc: {len(enc)}")
+        if len(enc) != 0:
+            print(f"enc: {enc.min()}, {enc.max()}")
 
         h = self.sigma_net(enc)
+        print(f"!!!als2")
+        print(f"h: {len(h)}")
+        if len(h) != 0:
+            print(f"h: {h.min()}, {h.max()}")
 
         sigma = self.density_activation(h[..., 0] + self.density_blob(x))
+        print(f"!!!als3")
+        print(f"sigma: {len(sigma)}")
+        if len(sigma) != 0:
+            print(f"sigma: {sigma.min()}, {sigma.max()}")
         albedo = torch.sigmoid(h[..., 1:])
+        print(f"!!!als4")
+        print(f"albedo: {len(albedo)}")
+        if len(albedo) != 0:
+            print(f"albedo: {albedo.min()}, {albedo.max()}")
 
         return sigma, albedo
     
