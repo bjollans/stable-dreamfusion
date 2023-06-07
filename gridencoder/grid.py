@@ -121,7 +121,6 @@ class _grid_encode(Function):
         print(f"max_level: {max_level}")
         print(f"S: {S}")
         print(f"H: {H}")
-        print(f"dy_dx: {len(dy_dx)}")
         if dy_dx is not None:
             print(f"dy_dx: {len(dy_dx)}")
             if len(dy_dx) != 0:
