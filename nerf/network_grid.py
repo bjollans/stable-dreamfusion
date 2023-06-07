@@ -114,27 +114,47 @@ class NeRFNetwork(NeRFRenderer):
         print(f"sigma: {len(sigma)}")
         if len(sigma) != 0:
             print(f"sigma: {sigma.min()}, {sigma.max()}")
-        print(f"color: {len(color)}")
-        if len(color) != 0:
-            print(f"color: {color.min()}, {color.max()}")
+        print(f"albedo: {len(albedo)}")
+        if len(albedo) != 0:
+            print(f"albedo: {albedo.min()}, {albedo.max()}")
 
         if shading == 'albedo':
+            print("!!!uio3")
             normal = None
             color = albedo
         
         else: # lambertian shading
+            print("!!!uio4")
 
             # normal = self.normal_net(enc)
             normal = self.normal(x)
+            print(f"normal: {len(normal)}")
+            if len(normal) != 0:
+                print(f"normal: {normal.min()}, {normal.max()}")
 
             lambertian = ratio + (1 - ratio) * (normal * l).sum(-1).clamp(min=0) # [N,]
+            print(f"lambertian: {len(lambertian)}")
+            if len(lambertian) != 0:
+                print(f"lambertian: {lambertian.min()}, {lambertian.max()}")
 
             if shading == 'textureless':
+                print("!!!uio5")
                 color = lambertian.unsqueeze(-1).repeat(1, 3)
+                print(f"color: {len(color)}")
+                if len(color) != 0:
+                    print(f"color: {color.min()}, {color.max()}")
             elif shading == 'normal':
+                print("!!!uio6")
                 color = (normal + 1) / 2
+                print(f"color: {len(color)}")
+                if len(color) != 0:
+                    print(f"color: {color.min()}, {color.max()}")
             else: # 'lambertian'
+                print("!!!uio7")
                 color = albedo * lambertian.unsqueeze(-1)
+                print(f"color: {len(color)}")
+                if len(color) != 0:
+                    print(f"color: {color.min()}, {color.max()}")
             
         return sigma, color, normal
 

@@ -119,9 +119,9 @@ class NeRFNetwork(NeRFRenderer):
         print(f"sigma: {len(sigma)}")
         if len(sigma) != 0:
             print(f"sigma: {sigma.min()}, {sigma.max()}")
-        print(f"color: {len(color)}")
-        if len(color) != 0:
-            print(f"color: {color.min()}, {color.max()}")
+        print(f"albedo: {len(albedo)}")
+        if len(albedo) != 0:
+            print(f"albedo: {albedo.min()}, {albedo.max()}")
 
         if shading == 'albedo':
             normal = None
