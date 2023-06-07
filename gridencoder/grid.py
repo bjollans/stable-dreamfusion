@@ -47,13 +47,13 @@ class _grid_encode(Function):
             embeddings = embeddings.to(torch.half)
 
         # L first, optimize cache for cuda kernel, but needs an extra permute later
-        outputs = torch.full((L, B, C), fill_value=torch.nan, device=inputs.device, dtype=embeddings.dtype)
+        outputs = torch.empty(L, B, C, device=inputs.device, dtype=embeddings.dtype)
 
         # zero init if we only calculate partial levels
         if max_level < L: outputs.zero_()
 
         if calc_grad_inputs:
-            dy_dx = torch.full((B, L * D * C), fill_value=torch.nan, device=inputs.device, dtype=embeddings.dtype)
+            dy_dx = torch.empty(B, L * D * C, device=inputs.device, dtype=embeddings.dtype)
             if max_level < L: dy_dx.zero_()
         else:
             dy_dx = None
@@ -138,7 +138,7 @@ class GridEncoder(nn.Module):
         self.n_params = offsets[-1] * level_dim
 
         # parameters
-        self.embeddings = nn.Parameter(torch.full((offset, level_dim), fill_value=torch.nan))
+        self.embeddings = nn.Parameter(torch.empty(offset, level_dim))
 
         self.reset_parameters()
     

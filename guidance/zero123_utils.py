@@ -120,7 +120,7 @@ class Zero123(nn.Module):
             v1, v2 = sph2cart(sv1), sph2cart(sv2)
             v1_u, v2_u = unit_vector(v1), unit_vector(v2)
             return torch.arccos(torch.clip(torch.dot(v1_u, v2_u), -1.0, 1.0))
-        angles = torch.empty(len(sph_v1), len(sph_v2))
+        angles = torch.full((len(sph_v1), len(sph_v2)), fill_value=torch.nan)
         for i, sv1 in enumerate(sph_v1):
             for j, sv2 in enumerate(sph_v2):
                 angles[i][j] = angle_between_2_sph(sv1, sv2)

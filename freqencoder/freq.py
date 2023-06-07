@@ -24,7 +24,7 @@ class _freq_encoder(Function):
 
         B, input_dim = inputs.shape # batch size, coord dim
         
-        outputs = torch.empty(B, output_dim, dtype=inputs.dtype, device=inputs.device)
+        outputs = torch.full((B, output_dim), fill_value=torch.nan, dtype=inputs.dtype, device=inputs.device)
 
         _backend.freq_encode_forward(inputs, B, input_dim, degree, output_dim, outputs)
 
