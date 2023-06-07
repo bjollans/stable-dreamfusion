@@ -122,8 +122,12 @@ class _grid_encode(Function):
         print(f"S: {S}")
         print(f"H: {H}")
         print(f"dy_dx: {len(dy_dx)}")
-        if len(dy_dx) != 0:
-            print(f"dy_dx: {dy_dx.min()} {dy_dx.max()}")
+        if dy_dx is not None:
+            print(f"dy_dx: {len(dy_dx)}")
+            if len(dy_dx) != 0:
+                print(f"dy_dx: {dy_dx.min()} {dy_dx.max()}")
+        else:
+            print(f"dy_dx: {dy_dx}")
         print(f"gridtype: {gridtype}")
         print(f"align_corners: {align_corners}")
         print(f"interpolation: {interpolation}")
