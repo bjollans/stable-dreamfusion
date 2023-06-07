@@ -106,22 +106,7 @@ class NeRFNetwork(NeRFRenderer):
         # l: [3], plane light direction, nomalized in [-1, 1]
         # ratio: scalar, ambient ratio, 1 == no shading (albedo only), 0 == only shading (textureless)
 
-        print("!!!pty1")
-        print(f"x: {len(x)}")
-        if len(x) != 0:
-            print(f"x: {x.min()}, {x.max()}")
-        print(f"d: {len(d)}")
-        if len(d) != 0:
-            print(f"d: {d.min()}, {d.max()}")
         sigma, albedo = self.common_forward(x)
-
-        print("!!!pty2")
-        print(f"sigma: {len(sigma)}")
-        if len(sigma) != 0:
-            print(f"sigma: {sigma.min()}, {sigma.max()}")
-        print(f"albedo: {len(albedo)}")
-        if len(albedo) != 0:
-            print(f"albedo: {albedo.min()}, {albedo.max()}")
 
         if shading == 'albedo':
             normal = None

@@ -418,7 +418,6 @@ class Trainer(object):
                                     self.opt.default_fovy * (1 - r) + self.opt.full_fovy_range[1] * r]
 
         # progressively increase max_level
-        print(f'train 1 {self.opt.progressive_level}')
         if self.opt.progressive_level:
             self.model.max_level = min(1.0, 0.25 + 2.0*exp_iter_ratio)
 
@@ -486,7 +485,6 @@ class Trainer(object):
             else:
                 bg_color = torch.rand(3).to(self.device) # single color random bg
 
-        print(f'train render {self.opt.progressive_level}')
         outputs = self.model.render(rays_o, rays_d, mvp, H, W, staged=False, perturb=True, bg_color=bg_color, ambient_ratio=ambient_ratio, shading=shading, binarize=binarize)
         pred_depth = outputs['depth'].reshape(B, 1, H, W)
         pred_mask = outputs['weights_sum'].reshape(B, 1, H, W)
@@ -602,7 +600,6 @@ class Trainer(object):
 
             if 'zero123' in self.guidance:
 
-                print("zero123 in guidance")
                 # Bottom line for these guys is that they are random but correspond to the rendered view of the 3dModel (== pred_rgb)
                 polar = data['polar']
                 azimuth = data['azimuth']
@@ -622,58 +619,37 @@ class Trainer(object):
 
         # regularizations
         if not self.opt.dmtet:
-            print("!!!not dmtet")
 
             if self.opt.lambda_opacity > 0:
-                print(f"!!!!!asd1")
                 loss_opacity = (outputs['weights_sum'] ** 2).mean()
-                print(f"!!!!!asd2 loss_opacity {loss_opacity}")
                 loss = loss + self.opt.lambda_opacity * loss_opacity
-                print(f"!!!!!asd3 loss {loss}")
 
             if self.opt.lambda_entropy > 0:
-                print(f"!!!!!asd4 outputs['weights'] {outputs['weights']}")
                 alphas = outputs['weights'].clamp(1e-5, 1 - 1e-5)
-                print(f"!!!!!asd5 alphas {alphas}")
                 # alphas = alphas ** 2 # skewed entropy, favors 0 over 1
-                print(f"!!!!!asd6 alphas {alphas}")
                 loss_entropy = (- alphas * torch.log2(alphas) - (1 - alphas) * torch.log2(1 - alphas)).mean()
-                print(f"!!!!!asd7 loss_entropy {loss_entropy}")
                 lambda_entropy = self.opt.lambda_entropy * min(1, 2 * self.global_step / self.opt.iters)
-                print(f"!!!!!asd8 lambda_entropy {lambda_entropy}")
                 loss = loss + lambda_entropy * loss_entropy
-                print(f"!!!!!asd9 loss {loss}")
 
             if self.opt.lambda_2d_normal_smooth > 0 and 'normal_image' in outputs:
-                print(f"!!!!!asd10")
                 # pred_vals = outputs['normal_image'].reshape(B, H, W, 3).permute(0, 3, 1, 2).contiguous()
                 # smoothed_vals = TF.gaussian_blur(pred_vals.detach(), kernel_size=9)
                 # loss_smooth = F.mse_loss(pred_vals, smoothed_vals)
-                print(f"!!!!!asd13 loss_smooth {loss_smooth}")
                 # total-variation
-                print(f"!!!!!asd14")
                 loss_smooth = (pred_normal[:, 1:, :, :] - pred_normal[:, :-1, :, :]).square().mean() + \
                               (pred_normal[:, :, 1:, :] - pred_normal[:, :, :-1, :]).square().mean()
-                print(f"!!!!!asd15 loss_smooth {loss_smooth}")
                 loss = loss + self.opt.lambda_2d_normal_smooth * loss_smooth
-                print(f"!!!!!asd16 loss {loss}")
 
             if self.opt.lambda_orient > 0 and 'loss_orient' in outputs:
-                print(f"!!!!!asd17")
                 loss_orient = outputs['loss_orient']
-                print(f"!!!!!asd18 loss_orient {loss_orient}")
                 loss = loss + self.opt.lambda_orient * loss_orient
-                print(f"!!!!!asd19 loss {loss}")
 
             if self.opt.lambda_3d_normal_smooth > 0 and 'loss_normal_perturb' in outputs:
-                print(f"!!!!!asd20")
                 loss_normal_perturb = outputs['loss_normal_perturb']
-                print(f"!!!!!asd21 loss_normal_perturb {loss_normal_perturb}")
                 loss = loss + self.opt.lambda_3d_normal_smooth * loss_normal_perturb
-                print(f"!!!!!asd22 loss {loss}")
 
         else:
-            print("!!!dmtet")
+
             if self.opt.lambda_mesh_normal > 0:
                 loss = loss + self.opt.lambda_mesh_normal * outputs['normal_loss']
 
@@ -769,20 +745,16 @@ class Trainer(object):
         for epoch in range(self.epoch + 1, max_epochs + 1):
             self.epoch = epoch
 
-            print(f"==> Epoch {self.epoch} starts:")
             self.train_one_epoch(train_loader, max_epochs)
 
             if self.workspace is not None and self.local_rank == 0:
-                print(f"==> Saving checkpoint to {self.workspace}")
                 self.save_checkpoint(full=True, best=False)
 
             if self.epoch % self.opt.eval_interval == 0:
-                print(f"==> Evaluating at epoch {self.epoch}")
                 self.evaluate_one_epoch(valid_loader)
                 self.save_checkpoint(full=False, best=True)
 
             if self.epoch % self.opt.test_interval == 0 or self.epoch == max_epochs:
-                print(f"==> Testing at epoch {self.epoch}")
                 self.test(test_loader)
 
         end_t = time.time()
@@ -878,43 +850,28 @@ class Trainer(object):
             self.optimizer.zero_grad()
 
             with torch.cuda.amp.autocast(enabled=self.fp16):
-                print(f"!!!qwe1")
                 pred_rgbs, pred_depths, loss = self.train_step(data)
-                print(f"!!!qwe2")
 
             self.scaler.scale(loss).backward()
-            print(f"!!!qwe3")
             self.post_train_step()
-            print(f"!!!qwe4")
             self.scaler.step(self.optimizer)
-            print(f"!!!qwe5")
             self.scaler.update()
-            print(f"!!!qwe6")
 
             if self.scheduler_update_every_step:
-                print(f"!!!qwe7")
                 self.lr_scheduler.step()
-                print(f"!!!qwe8")
 
             total_loss += loss.detach()
-            print(f"!!!qwe9")
 
         if self.ema is not None:
-            print(f"!!!qwe10")
             self.ema.update()
-            print(f"!!!qwe11")
 
         average_loss = total_loss.item() / step
-        print(f"!!!qwe12")
 
         if not self.scheduler_update_every_step:
             if isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                print(f"!!!qwe13")
                 self.lr_scheduler.step(average_loss)
             else:
-                print(f"!!!qwe14")
                 self.lr_scheduler.step()
-                print(f"!!!qwe15")
 
         outputs = {
             'loss': average_loss,
@@ -1025,113 +982,69 @@ class Trainer(object):
                     save_guidance_path = save_guidance_folder / f'step_{self.global_step:07d}.png'
                 else:
                     save_guidance_path = None
-                print(f"!!!zxc1")
                 pred_rgbs, pred_depths, loss = self.train_step(data, save_guidance_path=save_guidance_path)
-                print(f"!!!zxc2 loss {loss}")
 
             # hooked grad clipping for RGB space
             if self.opt.grad_clip_rgb >= 0:
-                print(f"!!!zxc3")
                 def _hook(grad):
                     if self.opt.fp16:
                         # correctly handle the scale
-                        print(f"!!!zxc4")
                         grad_scale = self.scaler._get_scale_async()
-                        print(f"!!!zxc5")
                         return grad.clamp(grad_scale * -self.opt.grad_clip_rgb, grad_scale * self.opt.grad_clip_rgb)
                     else:
-                        print(f"!!!zxc6")
                         return grad.clamp(-self.opt.grad_clip_rgb, self.opt.grad_clip_rgb)
-                print(f"!!!zxc7")
                 pred_rgbs.register_hook(_hook)
                 # pred_rgbs.retain_grad()
 
-            print(f"!!!zxc8 loss {loss}")
             self.scaler.scale(loss).backward()
-            print(f"!!!zxc9 loss {loss}")
 
             self.post_train_step()
-            print(f"!!!zxc10 loss {loss}")
             self.scaler.step(self.optimizer)
-            print(f"!!!zxc11 loss {loss}")
             self.scaler.update()
-            print(f"!!!zxc12 loss {loss}")
 
             if self.scheduler_update_every_step:
-                print(f"!!!zxc13 loss {loss}")
                 self.lr_scheduler.step()
-                print(f"!!!zxc14 loss {loss}")
 
             loss_val = loss.item()
-            print(f"!!!zxc15 loss_val {loss_val} loss {loss} total_loss {total_loss}")
             total_loss += loss_val
-            print(f"!!!zxc16 total_loss {total_loss}")
 
             if self.local_rank == 0:
-                print(f"!!!zxc17 loss_val {loss_val} total_loss {total_loss} loss {loss}")
                 # if self.report_metric_at_train:
                 #     for metric in self.metrics:
                 #         metric.update(preds, truths)
 
                 if self.use_tensorboardX:
-                    print(f"!!!zxc18 loss_val {loss_val} total_loss {total_loss} loss {loss}")
                     self.writer.add_scalar("train/loss", loss_val, self.global_step)
-                    print(f"!!!zxc19")
                     self.writer.add_scalar("train/lr", self.optimizer.param_groups[0]['lr'], self.global_step)
-                    print(f"!!!zxc20")
 
                 if self.scheduler_update_every_step:
-                    print(f"!!!zxc21")
                     pbar.set_description(f"loss={loss_val:.4f} ({total_loss/self.local_step:.4f}), lr={self.optimizer.param_groups[0]['lr']:.6f}")
-                    print(f"!!!zxc22")
                 else:
-                    print(f"!!!zxc23")
                     pbar.set_description(f"loss={loss_val:.4f} ({total_loss/self.local_step:.4f})")
-                    print(f"!!!zxc24")
-                print(f"!!!zxc25")
                 pbar.update(loader.batch_size)
-                print(f"!!!zxc26")
 
         if self.ema is not None:
-            print(f"!!!zxc27")
             self.ema.update()
-            print(f"!!!zxc28")
 
         average_loss = total_loss / self.local_step
-        print(f"!!!zxc29")
         self.stats["loss"].append(average_loss)
-        print(f"!!!zxc30")
 
         if self.local_rank == 0:
-            print(f"!!!zxc31")
             pbar.close()
-            print(f"!!!zxc32")
             if self.report_metric_at_train:
-                print(f"!!!zxc33")
                 for metric in self.metrics:
-                    print(f"!!!zxc34")
                     self.log(metric.report(), style="red")
-                    print(f"!!!zxc35")
                     if self.use_tensorboardX:
-                        print(f"!!!zxc36")
                         metric.write(self.writer, self.epoch, prefix="train")
-                        print(f"!!!zxc37")
                     metric.clear()
-                    print(f"!!!zxc38")
 
         if not self.scheduler_update_every_step:
-            print(f"!!!zxc39")
             if isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-                print(f"!!!zxc40")
                 self.lr_scheduler.step(average_loss)
-                print(f"!!!zxc41")
             else:
-                print(f"!!!zxc42")
                 self.lr_scheduler.step()
-                print(f"!!!zxc43")
 
         cpu_mem, gpu_mem = get_CPU_mem(), get_GPU_mem()[0]
-        print(f"!!!zxc44")
         self.log(f"==> [{time.strftime('%Y-%m-%d_%H-%M-%S')}] Finished Epoch {self.epoch}/{max_epochs}. CPU={cpu_mem:.1f}GB, GPU={gpu_mem:.1f}GB.")
 
 
@@ -1146,8 +1059,6 @@ class Trainer(object):
             for metric in self.metrics:
                 metric.clear()
 
-        print(f"==> [{time.strftime('%Y-%m-%d_%H-%M-%S')}] Start evaluating 1 {name} ...")
-
         self.model.eval()
 
         if self.ema is not None:
@@ -1157,7 +1068,6 @@ class Trainer(object):
         if self.local_rank == 0:
             pbar = tqdm.tqdm(total=len(loader) * loader.batch_size, bar_format='{desc}: {percentage:3.0f}% {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]')
 
-        print(f"==> [{time.strftime('%Y-%m-%d_%H-%M-%S')}] Start evaluating 2 {name} ...")
         with torch.no_grad():
             self.local_step = 0
 
