@@ -760,7 +760,9 @@ class NeRFRenderer(nn.Module):
             print(f"rays: {rays}")
             dirs = safe_normalize(dirs)
             print("!!!!yui4")
-            print(f"dirs: {dirs.min()}, {dirs.max()}")
+            print(f"dirs: {len(dirs)}")
+            if len(dirs) != 0:
+                print(f"dirs: {dirs.min()}, {dirs.max()}")
 
             if light_d.shape[0] > 1:
                 print("!!!!yui5")
@@ -771,8 +773,12 @@ class NeRFRenderer(nn.Module):
             
             sigmas, rgbs, normals = self(xyzs, dirs, light_d, ratio=ambient_ratio, shading=shading)
             print("!!!!yui6")
-            print(f"sigmas: {sigmas.min()}, {sigmas.max()}")
-            print(f"rgbs: {rgbs.min()}, {rgbs.max()}")
+            print(f"sigmas: {len(sigmas)}")
+            if len(sigmas) != 0:
+                print(f"sigmas: {sigmas.min()}, {sigmas.max()}")
+            print(f"rgbs: {len(rgbs)}")
+            if len(rgbs) != 0:
+                print(f"rgbs: {rgbs.min()}, {rgbs.max()}")
             print(f"normals: {normals}")
             weights, weights_sum, depth, image = raymarching.composite_rays_train(sigmas, rgbs, ts, rays, T_thresh, binarize)
             print("!!!!yui7")
