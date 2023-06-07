@@ -1165,9 +1165,9 @@ class NeRFRenderer(nn.Module):
             results = self.run_taichi(rays_o, rays_d, **kwargs)
         else:
             if staged:
-                depth = torch.empty((B, N), device=device)
-                image = torch.empty((B, N, 3), device=device)
-                weights_sum = torch.empty((B, N), device=device)
+                depth = torch.full((B, N), fill_value=torch.nan, device=device)
+                image = torch.full((B, N, 3), fill_value=torch.nan, device=device)
+                weights_sum = torch.full((B, N), fill_value=torch.nan, device=device)
 
                 for b in range(B):
                     head = 0
