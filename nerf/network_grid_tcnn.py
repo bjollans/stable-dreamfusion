@@ -111,11 +111,26 @@ class NeRFNetwork(NeRFRenderer):
         # l: [3], plane light direction, nomalized in [-1, 1]
         # ratio: scalar, ambient ratio, 1 == no shading (albedo only), 0 == only shading (textureless)
 
+        print("!!!cvb1")
+        print(f"x: {len(x)}")
+        if len(x) != 0:
+            print(f"x: {x.min()}, {x.max()}")
+        print(f"d: {len(d)}")
+        if len(d) != 0:
+            print(f"d: {d.min()}, {d.max()}")
 
         if shading == 'albedo':
             sigma, albedo = self.common_forward(x)
             normal = None
             color = albedo
+
+            print("!!!cvb2")
+            print(f"sigma: {len(sigma)}")
+            if len(sigma) != 0:
+                print(f"sigma: {sigma.min()}, {sigma.max()}")
+            print(f"color: {len(color)}")
+            if len(color) != 0:
+                print(f"color: {color.min()}, {color.max()}")
         
         else: # lambertian shading
             with torch.enable_grad():
