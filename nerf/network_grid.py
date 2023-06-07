@@ -126,6 +126,7 @@ class NeRFNetwork(NeRFRenderer):
         # l: [3], plane light direction, nomalized in [-1, 1]
         # ratio: scalar, ambient ratio, 1 == no shading (albedo only), 0 == only shading (textureless)
 
+        # x is length 0 :-O
         print("!!!uio1")
         sigma, albedo = self.common_forward(x)
 

@@ -101,7 +101,62 @@ class _grid_encode(Function):
         else:
             dy_dx = None
 
+        print("!!! Before grid_encode_forward")
+        print(f"inputs: {len(inputs)}")
+        if len(inputs) != 0:
+            print(f"inputs: {inputs.min()} {inputs.max()}")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
+        print(f"offsets: {len(offsets)}")
+        if len(offsets) != 0:
+            print(f"offsets: {offsets.min()} {offsets.max()}")
+        print(f"outputs: {len(outputs)}")
+        if len(outputs) != 0:
+            print(f"outputs: {outputs.min()} {outputs.max()}")
+        print(f"B: {B}")
+        print(f"D: {D}")
+        print(f"C: {C}")
+        print(f"L: {L}")
+        print(f"max_level: {max_level}")
+        print(f"S: {S}")
+        print(f"H: {H}")
+        print(f"dy_dx: {len(dy_dx)}")
+        if len(dy_dx) != 0:
+            print(f"dy_dx: {dy_dx.min()} {dy_dx.max()}")
+        print(f"gridtype: {gridtype}")
+        print(f"align_corners: {align_corners}")
+        print(f"interpolation: {interpolation}")
+
         _backend.grid_encode_forward(inputs, embeddings, offsets, outputs, B, D, C, L, max_level, S, H, dy_dx, gridtype, align_corners, interpolation)
+
+        print("!!! After grid_encode_forward")
+        print(f"inputs: {len(inputs)}")
+        if len(inputs) != 0:
+            print(f"inputs: {inputs.min()} {inputs.max()}")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
+        print(f"offsets: {len(offsets)}")
+        if len(offsets) != 0:
+            print(f"offsets: {offsets.min()} {offsets.max()}")
+        print(f"outputs: {len(outputs)}")
+        if len(outputs) != 0:
+            print(f"outputs: {outputs.min()} {outputs.max()}")
+        print(f"B: {B}")
+        print(f"D: {D}")
+        print(f"C: {C}")
+        print(f"L: {L}")
+        print(f"max_level: {max_level}")
+        print(f"S: {S}")
+        print(f"H: {H}")
+        print(f"dy_dx: {len(dy_dx)}")
+        if len(dy_dx) != 0:
+            print(f"dy_dx: {dy_dx.min()} {dy_dx.max()}")
+        print(f"gridtype: {gridtype}")
+        print(f"align_corners: {align_corners}")
+        print(f"interpolation: {interpolation}")
+
 
         # permute back to [B, L * C]
         outputs = outputs.permute(1, 0, 2).reshape(B, L * C)
