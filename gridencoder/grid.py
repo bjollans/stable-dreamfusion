@@ -70,8 +70,8 @@ class _grid_encode(Function):
         # manually handle autocast (only use half precision embeddings, inputs must be float for enough precision)
         # if C % 2 != 0, force float, since half for atomicAdd is very slow.
         # This might be the cause for NaNs! I think it does not, because then embeddings would be nan at the next debug line already, but they are not.
-        if torch.is_autocast_enabled() and C % 2 == 0:
-            embeddings = embeddings.to(torch.half)
+        #if torch.is_autocast_enabled() and C % 2 == 0:
+        #    embeddings = embeddings.to(torch.half)
 
         print("!!! _grid_encode.forward (nmt5")
         print(f"embeddings: {len(embeddings)}")
