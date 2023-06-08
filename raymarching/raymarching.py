@@ -51,8 +51,8 @@ class _near_far_from_aabb(Function):
 
         N = rays_o.shape[0] # num rays
 
-        nears = torch.empty(1,N, dtype=rays_o.dtype, device=rays_o.device).squeeze()
-        fars = torch.empty(1,N, dtype=rays_o.dtype, device=rays_o.device).squeeze()
+        nears = torch.empty(N, dtype=rays_o.dtype, device=rays_o.device)
+        fars = torch.empty(N, dtype=rays_o.dtype, device=rays_o.device)
 
         get_backend().near_far_from_aabb(rays_o, rays_d, aabb, N, min_near, nears, fars)
 
@@ -107,7 +107,7 @@ class _morton3D(Function):
         
         N = coords.shape[0]
 
-        indices = torch.empty(N, dtype=torch.int32, device=coords.device).squeeze()
+        indices = torch.empty(N, dtype=torch.int32, device=coords.device)
         
         get_backend().morton3D(coords.int(), N, indices)
 
@@ -129,7 +129,7 @@ class _morton3D_invert(Function):
         
         N = indices.shape[0]
 
-        coords = torch.empty(N, dtype=torch.int32, device=indices.device)
+        coords = torch.empty(N, 3, dtype=torch.int32, device=indices.device)
         
         get_backend().morton3D_invert(indices.int(), N, coords)
 
@@ -158,7 +158,7 @@ class _packbits(Function):
         N = C * H3 // 8
 
         if bitfield is None:
-            bitfield = torch.empty(1,N, dtype=torch.uint8, device=grid.device).squeeze()
+            bitfield = torch.empty(N, dtype=torch.uint8, device=grid.device)
 
         get_backend().packbits(grid, N, thresh, bitfield)
 
@@ -238,7 +238,7 @@ class _march_rays_train(Function):
             noises = torch.zeros(N, dtype=rays_o.dtype, device=rays_o.device)
         
         # first pass: write rays, get total number of points M to render
-        rays = torch.empty(N, dtype=torch.int32, device=rays_o.device) # id, offset, num_steps
+        rays = torch.empty(N, 2, dtype=torch.int32, device=rays_o.device) # id, offset, num_steps
         get_backend().march_rays_train(rays_o, rays_d, density_bitfield, bound, contract, dt_gamma, max_steps, N, C, H, nears, fars, None, None, None, rays, step_counter, noises)
 
         # allocate based on M
@@ -282,10 +282,10 @@ class _composite_rays_train(Function):
         N = rays.shape[0]
 
         weights = torch.zeros(M, dtype=sigmas.dtype, device=sigmas.device) # may leave unmodified, so init with 0
-        weights_sum = torch.empty(1,N, dtype=sigmas.dtype, device=sigmas.device).squeeze()
+        weights_sum = torch.empty(N, dtype=sigmas.dtype, device=sigmas.device)
 
-        depth = torch.empty(1,N, dtype=sigmas.dtype, device=sigmas.device).squeeze()
-        image = torch.empty(N, 3, dtype=sigmas.dtype, device=sigmas.device).squeeze()
+        depth = torch.empty(N, dtype=sigmas.dtype, device=sigmas.device)
+        image = torch.empty(N, 3, dtype=sigmas.dtype, device=sigmas.device)
 
         get_backend().composite_rays_train_forward(sigmas, rgbs, ts, rays, M, N, T_thresh, binarize, weights, weights_sum, depth, image)
 
