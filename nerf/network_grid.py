@@ -70,7 +70,7 @@ class NeRFNetwork(NeRFRenderer):
         # sigma
         # Comment here to not forget: first thing to go NAN is the encoding -> need to check encoder
         enc = self.encoder(x, bound=self.bound, max_level=self.max_level)
-        print(f"!!!als")
+        print(f"!!!NerfNetwork.common_forward (als")
         print(f"self.bounds: {self.bound}")
         print(f"max_level: {self.max_level}")
         print(f"enc: {len(enc)}")
@@ -78,18 +78,18 @@ class NeRFNetwork(NeRFRenderer):
             print(f"enc: {enc.min()}, {enc.max()}")
 
         h = self.sigma_net(enc)
-        print(f"!!!als2")
+        print(f"!!!NerfNetwork.common_forward (als2")
         print(f"h: {len(h)}")
         if len(h) != 0:
             print(f"h: {h.min()}, {h.max()}")
 
         sigma = self.density_activation(h[..., 0] + self.density_blob(x))
-        print(f"!!!als3")
+        print(f"!!!NerfNetwork.common_forward (als3")
         print(f"sigma: {len(sigma)}")
         if len(sigma) != 0:
             print(f"sigma: {sigma.min()}, {sigma.max()}")
         albedo = torch.sigmoid(h[..., 1:])
-        print(f"!!!als4")
+        print(f"!!!NerfNetwork.common_forward (als4")
         print(f"albedo: {len(albedo)}")
         if len(albedo) != 0:
             print(f"albedo: {albedo.min()}, {albedo.max()}")
@@ -127,10 +127,11 @@ class NeRFNetwork(NeRFRenderer):
         # ratio: scalar, ambient ratio, 1 == no shading (albedo only), 0 == only shading (textureless)
 
         # x is length 0 :-O
-        print("!!!uio1")
+        print("!!!NerfNetwork.forward (uio1")
+        # nan appears first time here
         sigma, albedo = self.common_forward(x)
 
-        print("!!!uio2")
+        print("!!!NerfNetwork.forward (uio2")
         print(f"sigma: {len(sigma)}")
         if len(sigma) != 0:
             print(f"sigma: {sigma.min()}, {sigma.max()}")
@@ -139,12 +140,12 @@ class NeRFNetwork(NeRFRenderer):
             print(f"albedo: {albedo.min()}, {albedo.max()}")
 
         if shading == 'albedo':
-            print("!!!uio3")
+            print("!!!NerfNetwork.forward (uio3")
             normal = None
             color = albedo
         
         else: # lambertian shading
-            print("!!!uio4")
+            print("!!!NerfNetwork.forward (uio4")
 
             # normal = self.normal_net(enc)
             normal = self.normal(x)
@@ -158,19 +159,19 @@ class NeRFNetwork(NeRFRenderer):
                 print(f"lambertian: {lambertian.min()}, {lambertian.max()}")
 
             if shading == 'textureless':
-                print("!!!uio5")
+                print("!!!NerfNetwork.forward (uio5")
                 color = lambertian.unsqueeze(-1).repeat(1, 3)
                 print(f"color: {len(color)}")
                 if len(color) != 0:
                     print(f"color: {color.min()}, {color.max()}")
             elif shading == 'normal':
-                print("!!!uio6")
+                print("!!!NerfNetwork.forward (uio6")
                 color = (normal + 1) / 2
                 print(f"color: {len(color)}")
                 if len(color) != 0:
                     print(f"color: {color.min()}, {color.max()}")
             else: # 'lambertian'
-                print("!!!uio7")
+                print("!!!NerfNetwork.forward (uio7")
                 color = albedo * lambertian.unsqueeze(-1)
                 print(f"color: {len(color)}")
                 if len(color) != 0:

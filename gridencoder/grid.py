@@ -30,13 +30,17 @@ class _grid_encode(Function):
         # embeddings: [sO, C], float
         # offsets: [L + 1], int
         # RETURN: [B, F], float
+        print("!!! _grid_encode.forward (nmt0")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
 
-        print("!!!nmt1")
+        print("!!! _grid_encode.forward (nmt1")
         print(f"inputs: {len(inputs)}")
         if len(inputs) != 0:
             print(f"inputs: {inputs.min()} {inputs.max()}")
         inputs = inputs.contiguous()
-        print("!!!nmt2")
+        print("!!! _grid_encode.forward (nmt2")
         print(f"inputs: {len(inputs)}")
         if len(inputs) != 0:
             print(f"inputs: {inputs.min()} {inputs.max()}")
@@ -46,7 +50,7 @@ class _grid_encode(Function):
         C = embeddings.shape[1] # embedding dim for each level
         S = np.log2(per_level_scale) # resolution multiplier at each level, apply log2 for later CUDA exp2f
         H = base_resolution # base resolution
-        print("!!!nmt3")
+        print("!!! _grid_encode.forward (nmt3")
         print(f"H: {H}")
         print(f"S: {S}")
         print(f"L: {L}")
@@ -59,45 +63,58 @@ class _grid_encode(Function):
         print(f"max_level: {max_level}")
 
         max_level = L if max_level is None else max(min(int(math.ceil(max_level * L)), L), 1)
-        print("!!!nmt4")
+        print("!!! _grid_encode.forward (nmt4")
         print(f"max_level: {max_level}")
 
 
         # manually handle autocast (only use half precision embeddings, inputs must be float for enough precision)
         # if C % 2 != 0, force float, since half for atomicAdd is very slow.
+        # This might be the cause for NaNs! I think it does not, because then embeddings would be nan at the next debug line already, but they are not.
         if torch.is_autocast_enabled() and C % 2 == 0:
             embeddings = embeddings.to(torch.half)
 
-        print("!!!nmt5")
+        print("!!! _grid_encode.forward (nmt5")
         print(f"embeddings: {len(embeddings)}")
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")
 
         # L first, optimize cache for cuda kernel, but needs an extra permute later
         outputs = torch.empty(L, B, C, device=inputs.device, dtype=embeddings.dtype)
-        print("!!!nmt6")
+        print("!!! _grid_encode.forward (nmt6")
         print(f"outputs: {len(outputs)}")
         if len(outputs) != 0:
             print(f"outputs: {outputs.min()} {outputs.max()}")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
 
         # zero init if we only calculate partial levels
         if max_level < L: outputs.zero_()
-        print("!!!nmt7")
+        print("!!! _grid_encode.forward (nmt7")
         print(f"outputs: {len(outputs)}")
         if len(outputs) != 0:
             print(f"outputs: {outputs.min()} {outputs.max()}")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
 
         if calc_grad_inputs:
             dy_dx = torch.empty(B, L * D * C, device=inputs.device, dtype=embeddings.dtype)
-            print("!!!nmt8")
+            print("!!! _grid_encode.forward (nmt8")
             print(f"dy_dx: {len(dy_dx)}")
             if len(dy_dx) != 0:
                 print(f"dy_dx: {dy_dx.min()} {dy_dx.max()}")
+            print(f"embeddings: {len(embeddings)}")
+            if len(embeddings) != 0:
+                print(f"embeddings: {embeddings.min()} {embeddings.max()}")
             if max_level < L: dy_dx.zero_()
-            print("!!!nmt9")
+            print("!!! _grid_encode.forward (nmt9")
             print(f"dy_dx: {len(dy_dx)}")
             if len(dy_dx) != 0:
                 print(f"dy_dx: {dy_dx.min()} {dy_dx.max()}")
+            print(f"embeddings: {len(embeddings)}")
+            if len(embeddings) != 0:
+                print(f"embeddings: {embeddings.min()} {embeddings.max()}")
         else:
             dy_dx = None
 
@@ -167,14 +184,30 @@ class _grid_encode(Function):
         # permute back to [B, L * C]
         outputs = outputs.permute(1, 0, 2).reshape(B, L * C)
         
-        print("!!!nmt10")
+        print("!!! _grid_encode.forward (nmt10")
         print(f"outputs: {len(outputs)}")
         if len(outputs) != 0:
             print(f"outputs: {outputs.min()} {outputs.max()}")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
 
+        # I dont think so but maybe this is causing NaNs
         ctx.save_for_backward(inputs, embeddings, offsets, dy_dx)
+        print("!!! _grid_encode.forward (nmt11")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
         ctx.dims = [B, D, C, L, S, H, gridtype, interpolation, max_level]
+        print("!!! _grid_encode.forward (nmt12")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
         ctx.align_corners = align_corners
+        print("!!! _grid_encode.forward (nmt13")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
 
         return outputs
     
@@ -183,6 +216,7 @@ class _grid_encode(Function):
     @custom_bwd
     def backward(ctx, grad):
 
+        # Maybe this is causing NaNs
         inputs, embeddings, offsets, dy_dx = ctx.saved_tensors
         B, D, C, L, S, H, gridtype, interpolation, max_level = ctx.dims
         align_corners = ctx.align_corners
@@ -197,6 +231,7 @@ class _grid_encode(Function):
         else:
             grad_inputs = None
 
+        # Maybe this is causing NaNs
         _backend.grid_encode_backward(grad, inputs, embeddings, offsets, grad_embeddings, B, D, C, L, max_level, S, H, dy_dx, grad_inputs, gridtype, align_corners, interpolation)
 
         if dy_dx is not None:
@@ -263,12 +298,18 @@ class GridEncoder(nn.Module):
         # max_level: only calculate first max_level levels (None will use all levels)
         # return: [..., num_levels * level_dim]
 
-        print("!!!rtu1")
+        print("!!!GridEncoder.forward (rtu1")
+        print(f"embeddings: {len(self.embeddings)}")
+        if len(self.embeddings) != 0:
+            print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
         print(f"inputs: {len(inputs)}")
         if len(inputs) != 0:
             print(f"inputs: {inputs.min()} {inputs.max()}")
         inputs = (inputs + bound) / (2 * bound) # map to [0, 1]
-        print("!!!rtu2")
+        print("!!!GridEncoder.forward (rtu2")
+        print(f"embeddings: {len(self.embeddings)}")
+        if len(self.embeddings) != 0:
+            print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
         print(f"inputs: {len(inputs)}")
         if len(inputs) != 0:
             print(f"inputs: {inputs.min()} {inputs.max()}")
@@ -277,14 +318,20 @@ class GridEncoder(nn.Module):
 
         prefix_shape = list(inputs.shape[:-1])
         inputs = inputs.view(-1, self.input_dim)
-        print("!!!rtu3")
+        print("!!!GridEncoder.forward (rtu3")
+        print(f"embeddings: {len(self.embeddings)}")
+        if len(self.embeddings) != 0:
+            print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
         print(f"inputs: {len(inputs)}")
         if len(inputs) != 0:
             print(f"inputs: {inputs.min()} {inputs.max()}")
 
         outputs = grid_encode(inputs, self.embeddings, self.offsets, self.per_level_scale, self.base_resolution, inputs.requires_grad, self.gridtype_id, self.align_corners, self.interp_id, max_level)
         outputs = outputs.view(prefix_shape + [self.output_dim])
-        print("!!!rtu4")
+        print("!!!GridEncoder.forward (rtu4")
+        print(f"embeddings: {len(self.embeddings)}")
+        if len(self.embeddings) != 0:
+            print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
         print(f"outputs: {len(outputs)}")
         if len(outputs) != 0:
             print(f"outputs: {outputs.min()} {outputs.max()}")
