@@ -218,21 +218,51 @@ class _grid_encode(Function):
 
         # Maybe this is causing NaNs
         inputs, embeddings, offsets, dy_dx = ctx.saved_tensors
+        print("!!!GridEncoder.backward.backward (tip1")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
         B, D, C, L, S, H, gridtype, interpolation, max_level = ctx.dims
         align_corners = ctx.align_corners
 
         # grad: [B, L * C] --> [L, B, C]
         grad = grad.view(B, L, C).permute(1, 0, 2).contiguous()
 
+        print("!!!GridEncoder.backward.backward (tip2")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
         grad_embeddings = torch.zeros_like(embeddings)
+        print("!!!GridEncoder.backward.backward (tip3")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
+        print(f"grad_embeddings: {len(grad_embeddings)}")
+        if len(grad_embeddings) != 0:
+            print(f"grad_embeddings: {grad_embeddings.min()} {grad_embeddings.max()}")
 
         if dy_dx is not None:
             grad_inputs = torch.zeros_like(inputs, dtype=embeddings.dtype)
         else:
             grad_inputs = None
 
+        print("!!!GridEncoder.backward.backward (tip4")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
+        print(f"grad_embeddings: {len(grad_embeddings)}")
+        if len(grad_embeddings) != 0:
+            print(f"grad_embeddings: {grad_embeddings.min()} {grad_embeddings.max()}")
         # Maybe this is causing NaNs
         _backend.grid_encode_backward(grad, inputs, embeddings, offsets, grad_embeddings, B, D, C, L, max_level, S, H, dy_dx, grad_inputs, gridtype, align_corners, interpolation)
+        print("!!!GridEncoder.backward.backward (tip5")
+        print(f"embeddings: {len(embeddings)}")
+        if len(embeddings) != 0:
+            print(f"embeddings: {embeddings.min()} {embeddings.max()}")
+        print(f"grad_embeddings: {len(grad_embeddings)}")
+        if len(grad_embeddings) != 0:
+            print(f"grad_embeddings: {grad_embeddings.min()} {grad_embeddings.max()}")
+        
 
         if dy_dx is not None:
             grad_inputs = grad_inputs.to(inputs.dtype)
