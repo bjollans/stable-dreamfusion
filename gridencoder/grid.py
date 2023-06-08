@@ -312,11 +312,11 @@ class GridEncoder(nn.Module):
         self.n_params = offsets[-1] * level_dim
 
         # parameters
-        self.embeddings = nn.Parameter(torch.empty(offset, level_dim))
+        self.embeddings = nn.Parameter(torch.full((offset, level_dim), fill_value=torch.nan))
         print(f"!!!GridEncoder.__init_ id {id(self)}_ (hjk1")
-        print(f"embeddings: {len(self.embeddings)}")
+        print(f"embeddings (expect nan): {len(self.embeddings)}")
         if len(self.embeddings) != 0:
-            print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
+            print(f"embeddings (expect nan): {self.embeddings.min()} {self.embeddings.max()}")
 
         self.reset_parameters()
         print(f"!!!GridEncoder.__init_ id {id(self)}_ (hjk1")
