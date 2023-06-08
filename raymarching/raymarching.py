@@ -83,7 +83,7 @@ class _sph_from_ray(Function):
 
         N = rays_o.shape[0] # num rays
 
-        coords = torch.tensor([torch.nan]*N, 2, dtype=rays_o.dtype, device=rays_o.device)
+        coords = torch.full((N, 2), fill_value=torch.nan, dtype=rays_o.dtype, device=rays_o.device)
 
         get_backend().sph_from_ray(rays_o, rays_d, radius, N, coords)
 
@@ -285,7 +285,7 @@ class _composite_rays_train(Function):
         weights_sum = torch.tensor([torch.nan]*N, dtype=sigmas.dtype, device=sigmas.device)
 
         depth = torch.tensor([torch.nan]*N, dtype=sigmas.dtype, device=sigmas.device)
-        image = torch.tensor([torch.nan]*N, 3, dtype=sigmas.dtype, device=sigmas.device)
+        image = torch.full((N, 3),fill_value=torch.nan, dtype=sigmas.dtype, device=sigmas.device)
 
         get_backend().composite_rays_train_forward(sigmas, rgbs, ts, rays, M, N, T_thresh, binarize, weights, weights_sum, depth, image)
 
