@@ -218,7 +218,7 @@ class _grid_encode(Function):
 
         # Maybe this is causing NaNs
         inputs, embeddings, offsets, dy_dx = ctx.saved_tensors
-        print("!!!GridEncoder.backward.backward (tip1")
+        print(f"!!!GridEncoder.backward.backward (tip1")
         print(f"embeddings: {len(embeddings)}")
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")
@@ -228,12 +228,12 @@ class _grid_encode(Function):
         # grad: [B, L * C] --> [L, B, C]
         grad = grad.view(B, L, C).permute(1, 0, 2).contiguous()
 
-        print("!!!GridEncoder.backward.backward (tip2")
+        print(f"!!!GridEncoder.backward.backward (tip2")
         print(f"embeddings: {len(embeddings)}")
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")
         grad_embeddings = torch.zeros_like(embeddings)
-        print("!!!GridEncoder.backward.backward (tip3")
+        print(f"!!!GridEncoder.backward.backward (tip3")
         print(f"embeddings: {len(embeddings)}")
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")
@@ -246,7 +246,7 @@ class _grid_encode(Function):
         else:
             grad_inputs = None
 
-        print("!!!GridEncoder.backward.backward (tip4")
+        print(f"!!!GridEncoder.backward.backward (tip4")
         print(f"embeddings: {len(embeddings)}")
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")
@@ -255,7 +255,7 @@ class _grid_encode(Function):
             print(f"grad_embeddings: {grad_embeddings.min()} {grad_embeddings.max()}")
         # Maybe this is causing NaNs
         _backend.grid_encode_backward(grad, inputs, embeddings, offsets, grad_embeddings, B, D, C, L, max_level, S, H, dy_dx, grad_inputs, gridtype, align_corners, interpolation)
-        print("!!!GridEncoder.backward.backward (tip5")
+        print(f"!!!GridEncoder.backward.backward (tip5")
         print(f"embeddings: {len(embeddings)}")
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")
@@ -313,13 +313,13 @@ class GridEncoder(nn.Module):
 
         # parameters
         self.embeddings = nn.Parameter(torch.empty(offset, level_dim))
-        print("!!!GridEncoder.__init__ (hjk1")
+        print(f"!!!GridEncoder.__init_ id {id(self)}_ (hjk1")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
 
         self.reset_parameters()
-        print("!!!GridEncoder.__init__ (hjk1")
+        print(f"!!!GridEncoder.__init_ id {id(self)}_ (hjk1")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
@@ -336,7 +336,7 @@ class GridEncoder(nn.Module):
         # max_level: only calculate first max_level levels (None will use all levels)
         # return: [..., num_levels * level_dim]
 
-        print("!!!GridEncoder.forward (rtu1")
+        print(f"!!!GridEncoder.forward id {id(self)} (rtu1")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
@@ -344,7 +344,7 @@ class GridEncoder(nn.Module):
         if len(inputs) != 0:
             print(f"inputs: {inputs.min()} {inputs.max()}")
         inputs = (inputs + bound) / (2 * bound) # map to [0, 1]
-        print("!!!GridEncoder.forward (rtu2")
+        print(f"!!!GridEncoder.forward id {id(self)} (rtu2")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
@@ -356,7 +356,7 @@ class GridEncoder(nn.Module):
 
         prefix_shape = list(inputs.shape[:-1])
         inputs = inputs.view(-1, self.input_dim)
-        print("!!!GridEncoder.forward (rtu3")
+        print(f"!!!GridEncoder.forward id {id(self)} (rtu3")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
@@ -366,7 +366,7 @@ class GridEncoder(nn.Module):
 
         outputs = grid_encode(inputs, self.embeddings, self.offsets, self.per_level_scale, self.base_resolution, inputs.requires_grad, self.gridtype_id, self.align_corners, self.interp_id, max_level)
         outputs = outputs.view(prefix_shape + [self.output_dim])
-        print("!!!GridEncoder.forward (rtu4")
+        print(f"!!!GridEncoder.forward id {id(self)} (rtu4")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
@@ -382,7 +382,7 @@ class GridEncoder(nn.Module):
     @torch.cuda.amp.autocast(enabled=False)
     def grad_total_variation(self, weight=1e-7, inputs=None, bound=1, B=1000000):
         # inputs: [..., input_dim], float in [-b, b], location to calculate TV loss.
-        print("!!!GridEncoder.grad_total_variation (lki1")
+        print(f"!!!GridEncoder.grad_to id {id(self)}tal_variation (lki1")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
@@ -391,7 +391,7 @@ class GridEncoder(nn.Module):
         L = self.offsets.shape[0] - 1 # level
         S = np.log2(self.per_level_scale) # resolution multiplier at each level, apply log2 for later CUDA exp2f
         H = self.base_resolution # base resolution
-        print("!!!GridEncoder.grad_total_variation (lki2")
+        print(f"!!!GridEncoder.grad_to id {id(self)}tal_variation (lki2")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
@@ -404,7 +404,7 @@ class GridEncoder(nn.Module):
             inputs = inputs.view(-1, self.input_dim)
             B = inputs.shape[0]
 
-        print("!!!GridEncoder.grad_total_variation (lki3")
+        print(f"!!!GridEncoder.grad_to id {id(self)}tal_variation (lki3")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
@@ -412,14 +412,14 @@ class GridEncoder(nn.Module):
         if self.embeddings.grad is None:
             raise ValueError('grad is None, should be called after loss.backward() and before optimizer.step()!')
         
-        print("!!!GridEncoder.grad_total_variation (lki4")
+        print(f"!!!GridEncoder.grad_to id {id(self)}tal_variation (lki4")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
 
         _backend.grad_total_variation(inputs, self.embeddings, self.embeddings.grad, self.offsets, weight, B, D, C, L, S, H, self.gridtype_id, self.align_corners)
 
-        print("!!!GridEncoder.grad_total_variation (lki5")
+        print(f"!!!GridEncoder.grad_to id {id(self)}tal_variation (lki5")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
@@ -428,7 +428,7 @@ class GridEncoder(nn.Module):
     def grad_weight_decay(self, weight=0.1):
         # level-wise meaned weight decay (ref: zip-nerf)
         
-        print("!!!GridEncoder.grad_weight_decay (tip1")
+        print(f"!!!GridEncoder.grad_weight_decay id {id(self)} (tip1")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
@@ -436,7 +436,7 @@ class GridEncoder(nn.Module):
         B = self.embeddings.shape[0] # size of embedding
         C = self.embeddings.shape[1] # embedding dim for each level
         L = self.offsets.shape[0] - 1 # level
-        print("!!!GridEncoder.grad_weight_decay (tip2")
+        print(f"!!!GridEncoder.grad_weight_decay id {id(self)} (tip2")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
@@ -444,14 +444,14 @@ class GridEncoder(nn.Module):
         if self.embeddings.grad is None:
             raise ValueError('grad is None, should be called after loss.backward() and before optimizer.step()!')
         
-        print("!!!GridEncoder.grad_weight_decay (tip3")
+        print(f"!!!GridEncoder.grad_weight_decay id {id(self)} (tip3")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
 
         _backend.grad_weight_decay(self.embeddings, self.embeddings.grad, self.offsets, weight, B, C, L)
 
-        print("!!!GridEncoder.grad_weight_decay (tip4")
+        print(f"!!!GridEncoder.grad_weight_decay id {id(self)} (tip4")
         print(f"embeddings: {len(self.embeddings)}")
         if len(self.embeddings) != 0:
             print(f"embeddings: {self.embeddings.min()} {self.embeddings.max()}")
