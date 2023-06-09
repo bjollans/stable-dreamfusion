@@ -1062,7 +1062,7 @@ class Trainer(object):
             self.post_train_step()
             print(f"!!!zxc10")
             print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
-            print(f"in utils embeddings dtype: {self.model.encoder.embeddings.dtype}}")
+            print(f"in utils embeddings dtype: {self.model.encoder.embeddings.dtype}")
             print("here nan happens")
             self.scaler.step(self.optimizer)
             print(f"!!!zxc11")
