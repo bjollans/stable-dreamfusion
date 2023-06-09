@@ -1026,112 +1026,156 @@ class Trainer(object):
                 else:
                     save_guidance_path = None
                 print(f"!!!zxc1")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                 pred_rgbs, pred_depths, loss = self.train_step(data, save_guidance_path=save_guidance_path)
                 print(f"!!!zxc2")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
 
             # hooked grad clipping for RGB space
             if self.opt.grad_clip_rgb >= 0:
                 print(f"!!!zxc3")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                 def _hook(grad):
                     if self.opt.fp16:
                         # correctly handle the scale
                         print(f"!!!zxc4")
+                        print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                         grad_scale = self.scaler._get_scale_async()
                         print(f"!!!zxc5")
+                        print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                         return grad.clamp(grad_scale * -self.opt.grad_clip_rgb, grad_scale * self.opt.grad_clip_rgb)
                     else:
                         print(f"!!!zxc6")
+                        print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                         return grad.clamp(-self.opt.grad_clip_rgb, self.opt.grad_clip_rgb)
                 print(f"!!!zxc7")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                 pred_rgbs.register_hook(_hook)
                 # pred_rgbs.retain_grad()
 
             print(f"!!!zxc8")
+            print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
             self.scaler.scale(loss).backward()
             print(f"!!!zxc9")
+            print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
 
             self.post_train_step()
             print(f"!!!zxc10")
+            print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
             self.scaler.step(self.optimizer)
             print(f"!!!zxc11")
+            print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
             self.scaler.update()
             print(f"!!!zxc12")
+            print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
 
             if self.scheduler_update_every_step:
                 print(f"!!!zxc13")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                 self.lr_scheduler.step()
                 print(f"!!!zxc14")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
 
             loss_val = loss.item()
             print(f"!!!zxc15")
+            print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
             total_loss += loss_val
             print(f"!!!zxc16")
+            print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
 
             if self.local_rank == 0:
                 print(f"!!!zxc17")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                 # if self.report_metric_at_train:
                 #     for metric in self.metrics:
                 #         metric.update(preds, truths)
 
                 if self.use_tensorboardX:
                     print(f"!!!zxc18")
+                    print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                     self.writer.add_scalar("train/loss", loss_val, self.global_step)
                     print(f"!!!zxc19")
+                    print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                     self.writer.add_scalar("train/lr", self.optimizer.param_groups[0]['lr'], self.global_step)
                     print(f"!!!zxc20")
+                    print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
 
                 if self.scheduler_update_every_step:
                     print(f"!!!zxc21")
+                    print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                     pbar.set_description(f"loss={loss_val:.4f} ({total_loss/self.local_step:.4f}), lr={self.optimizer.param_groups[0]['lr']:.6f}")
                     print(f"!!!zxc22")
+                    print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                 else:
                     print(f"!!!zxc23")
+                    print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                     pbar.set_description(f"loss={loss_val:.4f} ({total_loss/self.local_step:.4f})")
                     print(f"!!!zxc24")
+                    print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                 print(f"!!!zxc25")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                 pbar.update(loader.batch_size)
                 print(f"!!!zxc26")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
 
         if self.ema is not None:
             print(f"!!!zxc27")
+            print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
             self.ema.update()
             print(f"!!!zxc28")
+            print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
 
         average_loss = total_loss / self.local_step
         print(f"!!!zxc29")
+        print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
         self.stats["loss"].append(average_loss)
         print(f"!!!zxc30")
+        print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
 
         if self.local_rank == 0:
             print(f"!!!zxc31")
+            print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
             pbar.close()
             print(f"!!!zxc32")
+            print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
             if self.report_metric_at_train:
                 print(f"!!!zxc33")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                 for metric in self.metrics:
                     print(f"!!!zxc34")
+                    print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                     self.log(metric.report(), style="red")
                     print(f"!!!zxc35")
+                    print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                     if self.use_tensorboardX:
                         print(f"!!!zxc36")
+                        print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                         metric.write(self.writer, self.epoch, prefix="train")
                         print(f"!!!zxc37")
+                        print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                     metric.clear()
                     print(f"!!!zxc38")
+                    print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
 
         if not self.scheduler_update_every_step:
             print(f"!!!zxc39")
+            print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
             if isinstance(self.lr_scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
                 print(f"!!!zxc40")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                 self.lr_scheduler.step(average_loss)
                 print(f"!!!zxc41")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
             else:
                 print(f"!!!zxc42")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
                 self.lr_scheduler.step()
                 print(f"!!!zxc43")
+                print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
 
         cpu_mem, gpu_mem = get_CPU_mem(), get_GPU_mem()[0]
         print(f"!!!zxc44")
+        print(f"in utils embeddings: {self.model.encoder.embeddings.max()} {self.model.encoder.embeddings.min()}")
         self.log(f"==> [{time.strftime('%Y-%m-%d_%H-%M-%S')}] Finished Epoch {self.epoch}/{max_epochs}. CPU={cpu_mem:.1f}GB, GPU={gpu_mem:.1f}GB.")
 
 

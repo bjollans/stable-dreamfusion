@@ -1193,15 +1193,15 @@ class NeRFRenderer(nn.Module):
         # return: pred_rgb: [B, N, 3]
         B, N = rays_o.shape[:2]
         device = rays_o.device
-        print(f"!!!dfg0 rays_o {rays_o} rays_d {rays_d} mvp {mvp} h {h} w {w}")
+        print(f"!!!dfg0")
 
         if self.dmtet:
             print(f"!!!dfg1")
             results = self.run_dmtet(rays_o, rays_d, mvp, h, w, **kwargs)
         elif self.cuda_ray:
-            print(f"!!!dfg2")
+            print(f"!!!dfg2.1")
             results = self.run_cuda(rays_o, rays_d, **kwargs)
-            print(f"!!!dfg2")
+            print(f"!!!dfg2.2")
         elif self.taichi_ray:
             results = self.run_taichi(rays_o, rays_d, **kwargs)
             print(f"!!!dfg3")
