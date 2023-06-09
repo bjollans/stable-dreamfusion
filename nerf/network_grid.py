@@ -71,28 +71,14 @@ class NeRFNetwork(NeRFRenderer):
         # Comment here to not forget: first thing to go NAN is the encoding -> need to check encoder
         enc = self.encoder(x, bound=self.bound, max_level=self.max_level)
         print(f"!!!NerfNetwork.common_forward (als")
-        print(f"self.bounds: {self.bound}")
-        print(f"max_level: {self.max_level}")
-        print(f"enc: {len(enc)}")
-        if len(enc) != 0:
-            print(f"enc: {enc.min()}, {enc.max()}")
 
         h = self.sigma_net(enc)
         print(f"!!!NerfNetwork.common_forward (als2")
-        print(f"h: {len(h)}")
-        if len(h) != 0:
-            print(f"h: {h.min()}, {h.max()}")
 
         sigma = self.density_activation(h[..., 0] + self.density_blob(x))
         print(f"!!!NerfNetwork.common_forward (als3")
-        print(f"sigma: {len(sigma)}")
-        if len(sigma) != 0:
-            print(f"sigma: {sigma.min()}, {sigma.max()}")
         albedo = torch.sigmoid(h[..., 1:])
         print(f"!!!NerfNetwork.common_forward (als4")
-        print(f"albedo: {len(albedo)}")
-        if len(albedo) != 0:
-            print(f"albedo: {albedo.min()}, {albedo.max()}")
 
         return sigma, albedo
     
@@ -132,12 +118,6 @@ class NeRFNetwork(NeRFRenderer):
         sigma, albedo = self.common_forward(x)
 
         print("!!!NerfNetwork.forward (uio2")
-        print(f"sigma: {len(sigma)}")
-        if len(sigma) != 0:
-            print(f"sigma: {sigma.min()}, {sigma.max()}")
-        print(f"albedo: {len(albedo)}")
-        if len(albedo) != 0:
-            print(f"albedo: {albedo.min()}, {albedo.max()}")
 
         if shading == 'albedo':
             print("!!!NerfNetwork.forward (uio3")
@@ -149,33 +129,18 @@ class NeRFNetwork(NeRFRenderer):
 
             # normal = self.normal_net(enc)
             normal = self.normal(x)
-            print(f"normal: {len(normal)}")
-            if len(normal) != 0:
-                print(f"normal: {normal.min()}, {normal.max()}")
 
             lambertian = ratio + (1 - ratio) * (normal * l).sum(-1).clamp(min=0) # [N,]
-            print(f"lambertian: {len(lambertian)}")
-            if len(lambertian) != 0:
-                print(f"lambertian: {lambertian.min()}, {lambertian.max()}")
 
             if shading == 'textureless':
                 print("!!!NerfNetwork.forward (uio5")
                 color = lambertian.unsqueeze(-1).repeat(1, 3)
-                print(f"color: {len(color)}")
-                if len(color) != 0:
-                    print(f"color: {color.min()}, {color.max()}")
             elif shading == 'normal':
                 print("!!!NerfNetwork.forward (uio6")
                 color = (normal + 1) / 2
-                print(f"color: {len(color)}")
-                if len(color) != 0:
-                    print(f"color: {color.min()}, {color.max()}")
             else: # 'lambertian'
                 print("!!!NerfNetwork.forward (uio7")
                 color = albedo * lambertian.unsqueeze(-1)
-                print(f"color: {len(color)}")
-                if len(color) != 0:
-                    print(f"color: {color.min()}, {color.max()}")
             
         return sigma, color, normal
 

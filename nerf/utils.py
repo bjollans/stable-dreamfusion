@@ -627,50 +627,50 @@ class Trainer(object):
             if self.opt.lambda_opacity > 0:
                 print(f"!!!!!asd1")
                 loss_opacity = (outputs['weights_sum'] ** 2).mean()
-                print(f"!!!!!asd2 loss_opacity {loss_opacity}")
+                print(f"!!!!!asd2")
                 loss = loss + self.opt.lambda_opacity * loss_opacity
-                print(f"!!!!!asd3 loss {loss}")
+                print(f"!!!!!asd3")
 
             if self.opt.lambda_entropy > 0:
-                print(f"!!!!!asd4 outputs['weights'] {outputs['weights']}")
+                print(f"!!!!!asd4")
                 alphas = outputs['weights'].clamp(1e-5, 1 - 1e-5)
-                print(f"!!!!!asd5 alphas {alphas}")
+                print(f"!!!!!asd5")
                 # alphas = alphas ** 2 # skewed entropy, favors 0 over 1
-                print(f"!!!!!asd6 alphas {alphas}")
+                print(f"!!!!!asd6")
                 loss_entropy = (- alphas * torch.log2(alphas) - (1 - alphas) * torch.log2(1 - alphas)).mean()
-                print(f"!!!!!asd7 loss_entropy {loss_entropy}")
+                print(f"!!!!!asd7")
                 lambda_entropy = self.opt.lambda_entropy * min(1, 2 * self.global_step / self.opt.iters)
-                print(f"!!!!!asd8 lambda_entropy {lambda_entropy}")
+                print(f"!!!!!asd8")
                 loss = loss + lambda_entropy * loss_entropy
-                print(f"!!!!!asd9 loss {loss}")
+                print(f"!!!!!asd9")
 
             if self.opt.lambda_2d_normal_smooth > 0 and 'normal_image' in outputs:
                 print(f"!!!!!asd10")
                 # pred_vals = outputs['normal_image'].reshape(B, H, W, 3).permute(0, 3, 1, 2).contiguous()
                 # smoothed_vals = TF.gaussian_blur(pred_vals.detach(), kernel_size=9)
                 # loss_smooth = F.mse_loss(pred_vals, smoothed_vals)
-                print(f"!!!!!asd13 loss_smooth {loss_smooth}")
+                print(f"!!!!!asd13")
                 # total-variation
                 print(f"!!!!!asd14")
                 loss_smooth = (pred_normal[:, 1:, :, :] - pred_normal[:, :-1, :, :]).square().mean() + \
                               (pred_normal[:, :, 1:, :] - pred_normal[:, :, :-1, :]).square().mean()
-                print(f"!!!!!asd15 loss_smooth {loss_smooth}")
+                print(f"!!!!!asd15")
                 loss = loss + self.opt.lambda_2d_normal_smooth * loss_smooth
-                print(f"!!!!!asd16 loss {loss}")
+                print(f"!!!!!asd16")
 
             if self.opt.lambda_orient > 0 and 'loss_orient' in outputs:
                 print(f"!!!!!asd17")
                 loss_orient = outputs['loss_orient']
-                print(f"!!!!!asd18 loss_orient {loss_orient}")
+                print(f"!!!!!asd18")
                 loss = loss + self.opt.lambda_orient * loss_orient
-                print(f"!!!!!asd19 loss {loss}")
+                print(f"!!!!!asd19")
 
             if self.opt.lambda_3d_normal_smooth > 0 and 'loss_normal_perturb' in outputs:
                 print(f"!!!!!asd20")
                 loss_normal_perturb = outputs['loss_normal_perturb']
-                print(f"!!!!!asd21 loss_normal_perturb {loss_normal_perturb}")
+                print(f"!!!!!asd21")
                 loss = loss + self.opt.lambda_3d_normal_smooth * loss_normal_perturb
-                print(f"!!!!!asd22 loss {loss}")
+                print(f"!!!!!asd22")
 
         else:
             print("!!!dmtet")
@@ -1027,7 +1027,7 @@ class Trainer(object):
                     save_guidance_path = None
                 print(f"!!!zxc1")
                 pred_rgbs, pred_depths, loss = self.train_step(data, save_guidance_path=save_guidance_path)
-                print(f"!!!zxc2 loss {loss}")
+                print(f"!!!zxc2")
 
             # hooked grad clipping for RGB space
             if self.opt.grad_clip_rgb >= 0:
@@ -1046,35 +1046,35 @@ class Trainer(object):
                 pred_rgbs.register_hook(_hook)
                 # pred_rgbs.retain_grad()
 
-            print(f"!!!zxc8 loss {loss}")
+            print(f"!!!zxc8")
             self.scaler.scale(loss).backward()
-            print(f"!!!zxc9 loss {loss}")
+            print(f"!!!zxc9")
 
             self.post_train_step()
-            print(f"!!!zxc10 loss {loss}")
+            print(f"!!!zxc10")
             self.scaler.step(self.optimizer)
-            print(f"!!!zxc11 loss {loss}")
+            print(f"!!!zxc11")
             self.scaler.update()
-            print(f"!!!zxc12 loss {loss}")
+            print(f"!!!zxc12")
 
             if self.scheduler_update_every_step:
-                print(f"!!!zxc13 loss {loss}")
+                print(f"!!!zxc13")
                 self.lr_scheduler.step()
-                print(f"!!!zxc14 loss {loss}")
+                print(f"!!!zxc14")
 
             loss_val = loss.item()
-            print(f"!!!zxc15 loss_val {loss_val} loss {loss} total_loss {total_loss}")
+            print(f"!!!zxc15")
             total_loss += loss_val
-            print(f"!!!zxc16 total_loss {total_loss}")
+            print(f"!!!zxc16")
 
             if self.local_rank == 0:
-                print(f"!!!zxc17 loss_val {loss_val} total_loss {total_loss} loss {loss}")
+                print(f"!!!zxc17")
                 # if self.report_metric_at_train:
                 #     for metric in self.metrics:
                 #         metric.update(preds, truths)
 
                 if self.use_tensorboardX:
-                    print(f"!!!zxc18 loss_val {loss_val} total_loss {total_loss} loss {loss}")
+                    print(f"!!!zxc18")
                     self.writer.add_scalar("train/loss", loss_val, self.global_step)
                     print(f"!!!zxc19")
                     self.writer.add_scalar("train/lr", self.optimizer.param_groups[0]['lr'], self.global_step)

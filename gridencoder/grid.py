@@ -35,15 +35,7 @@ class _grid_encode(Function):
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")
 
-        print("!!! _grid_encode.forward (nmt1")
-        print(f"inputs: {len(inputs)}")
-        if len(inputs) != 0:
-            print(f"inputs: {inputs.min()} {inputs.max()}")
         inputs = inputs.contiguous()
-        print("!!! _grid_encode.forward (nmt2")
-        print(f"inputs: {len(inputs)}")
-        if len(inputs) != 0:
-            print(f"inputs: {inputs.min()} {inputs.max()}")
 
         B, D = inputs.shape # batch size, coord dim
         L = offsets.shape[0] - 1 # level
@@ -51,20 +43,11 @@ class _grid_encode(Function):
         S = np.log2(per_level_scale) # resolution multiplier at each level, apply log2 for later CUDA exp2f
         H = base_resolution # base resolution
         print("!!! _grid_encode.forward (nmt3")
-        print(f"H: {H}")
-        print(f"S: {S}")
-        print(f"L: {L}")
-        print(f"C: {C}")
-        print(f"D: {D}")
-        print(f"B: {B}")
         print(f"embeddings: {len(embeddings)}")
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")
-        print(f"max_level: {max_level}")
 
         max_level = L if max_level is None else max(min(int(math.ceil(max_level * L)), L), 1)
-        print("!!! _grid_encode.forward (nmt4")
-        print(f"max_level: {max_level}")
 
 
         # manually handle autocast (only use half precision embeddings, inputs must be float for enough precision)
@@ -81,9 +64,6 @@ class _grid_encode(Function):
         # L first, optimize cache for cuda kernel, but needs an extra permute later
         outputs = torch.empty(L, B, C, device=inputs.device, dtype=embeddings.dtype)
         print("!!! _grid_encode.forward (nmt6")
-        print(f"outputs: {len(outputs)}")
-        if len(outputs) != 0:
-            print(f"outputs: {outputs.min()} {outputs.max()}")
         print(f"embeddings: {len(embeddings)}")
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")
@@ -91,9 +71,6 @@ class _grid_encode(Function):
         # zero init if we only calculate partial levels
         if max_level < L: outputs.zero_()
         print("!!! _grid_encode.forward (nmt7")
-        print(f"outputs: {len(outputs)}")
-        if len(outputs) != 0:
-            print(f"outputs: {outputs.min()} {outputs.max()}")
         print(f"embeddings: {len(embeddings)}")
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")
@@ -101,17 +78,11 @@ class _grid_encode(Function):
         if calc_grad_inputs:
             dy_dx = torch.empty(B, L * D * C, device=inputs.device, dtype=embeddings.dtype)
             print("!!! _grid_encode.forward (nmt8")
-            print(f"dy_dx: {len(dy_dx)}")
-            if len(dy_dx) != 0:
-                print(f"dy_dx: {dy_dx.min()} {dy_dx.max()}")
             print(f"embeddings: {len(embeddings)}")
             if len(embeddings) != 0:
                 print(f"embeddings: {embeddings.min()} {embeddings.max()}")
             if max_level < L: dy_dx.zero_()
             print("!!! _grid_encode.forward (nmt9")
-            print(f"dy_dx: {len(dy_dx)}")
-            if len(dy_dx) != 0:
-                print(f"dy_dx: {dy_dx.min()} {dy_dx.max()}")
             print(f"embeddings: {len(embeddings)}")
             if len(embeddings) != 0:
                 print(f"embeddings: {embeddings.min()} {embeddings.max()}")
@@ -119,75 +90,22 @@ class _grid_encode(Function):
             dy_dx = None
 
         print("!!! Before grid_encode_forward")
-        print(f"inputs: {len(inputs)}")
-        if len(inputs) != 0:
-            print(f"inputs: {inputs.min()} {inputs.max()}")
         print(f"embeddings: {len(embeddings)}")
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")
-        print(f"offsets: {len(offsets)}")
-        if len(offsets) != 0:
-            print(f"offsets: {offsets.min()} {offsets.max()}")
-        print(f"outputs: {len(outputs)}")
-        if len(outputs) != 0:
-            print(f"outputs: {outputs.min()} {outputs.max()}")
-        print(f"B: {B}")
-        print(f"D: {D}")
-        print(f"C: {C}")
-        print(f"L: {L}")
-        print(f"max_level: {max_level}")
-        print(f"S: {S}")
-        print(f"H: {H}")
-        if dy_dx is not None:
-            print(f"dy_dx: {len(dy_dx)}")
-            if len(dy_dx) != 0:
-                print(f"dy_dx: {dy_dx.min()} {dy_dx.max()}")
-        else:
-            print(f"dy_dx: {dy_dx}")
-        print(f"gridtype: {gridtype}")
-        print(f"align_corners: {align_corners}")
-        print(f"interpolation: {interpolation}")
 
         _backend.grid_encode_forward(inputs, embeddings, offsets, outputs, B, D, C, L, max_level, S, H, dy_dx, gridtype, align_corners, interpolation)
 
         print("!!! After grid_encode_forward")
-        print(f"inputs: {len(inputs)}")
-        if len(inputs) != 0:
-            print(f"inputs: {inputs.min()} {inputs.max()}")
         print(f"embeddings: {len(embeddings)}")
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")
-        print(f"offsets: {len(offsets)}")
-        if len(offsets) != 0:
-            print(f"offsets: {offsets.min()} {offsets.max()}")
-        print(f"outputs: {len(outputs)}")
-        if len(outputs) != 0:
-            print(f"outputs: {outputs.min()} {outputs.max()}")
-        print(f"B: {B}")
-        print(f"D: {D}")
-        print(f"C: {C}")
-        print(f"L: {L}")
-        print(f"max_level: {max_level}")
-        print(f"S: {S}")
-        print(f"H: {H}")
-        if dy_dx is not None:
-            print(f"dy_dx: {len(dy_dx)}")
-            if len(dy_dx) != 0:
-                print(f"dy_dx: {dy_dx.min()} {dy_dx.max()}")
-        else:
-            print(f"dy_dx: {dy_dx}")
-        print(f"gridtype: {gridtype}")
-        print(f"align_corners: {align_corners}")
-        print(f"interpolation: {interpolation}")
 
 
         # permute back to [B, L * C]
         outputs = outputs.permute(1, 0, 2).reshape(B, L * C)
         
         print("!!! _grid_encode.forward (nmt10")
-        print(f"outputs: {len(outputs)}")
-        if len(outputs) != 0:
-            print(f"outputs: {outputs.min()} {outputs.max()}")
         print(f"embeddings: {len(embeddings)}")
         if len(embeddings) != 0:
             print(f"embeddings: {embeddings.min()} {embeddings.max()}")

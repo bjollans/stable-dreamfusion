@@ -172,12 +172,6 @@ class NeRFNetwork(NeRFRenderer):
             # no need to query normal
             sigma, color = self.common_forward(x)
             print("!!!iop2")
-            print(f"sigma: {len(sigma)}")
-            if len(sigma) != 0:
-                print(f"sigma: {sigma.min()}, {sigma.max()}")
-            print(f"color: {len(color)}")
-            if len(color) != 0:
-                print(f"color: {color.min()}, {color.max()}")
             normal = None
         
         else:
