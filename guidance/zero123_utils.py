@@ -1,6 +1,4 @@
 import math
-import os
-import random
 import numpy as np
 from omegaconf import OmegaConf
 from pathlib import Path
@@ -131,16 +129,6 @@ class Zero123(nn.Module):
     def train_step(self, embeddings, pred_rgb, polar, azimuth, radius, guidance_scale=3, as_latent=False, grad_scale=1, save_guidance_path:Path=None):
         # pred_rgb: tensor [1, 3, H, W] in [0, 1]
 
-        def seed_everything(seed):
-            random.seed(seed)
-            os.environ['PYTHONHASHSEED'] = str(seed)
-            np.random.seed(seed)
-            torch.manual_seed(seed)
-            torch.cuda.manual_seed(seed)
-            #torch.backends.cudnn.deterministic = True
-            #torch.backends.cudnn.benchmark = True
-
-        seed_everything(0)
         # adjust SDS scale based on how far the novel view is from the known view
         ref_radii = embeddings['ref_radii']
         ref_polars = embeddings['ref_polars']
